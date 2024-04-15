@@ -3,6 +3,7 @@ import csv
 import random
 import torch
 import h5py
+from tqdm import tqdm
 from pathlib import Path
 from wsiarch.data.load_h5 import h5_to_standard_format
 
@@ -31,8 +32,13 @@ def folder_as_class(folders, save_dir, train_prop=0.8):
             split_idx = int(len(h5_files) * train_prop)
             train_files, val_files = h5_files[:split_idx], h5_files[split_idx:]
 
-            for h5_file_path, split in zip(
-                h5_files, ["train"] * split_idx + ["val"] * (len(h5_files) - split_idx)
+            for h5_file_path, split in tqdm(
+                zip(
+                    h5_files,
+                    ["train"] * split_idx + ["val"] * (len(h5_files) - split_idx),
+                ),
+                total=len(h5_files),
+                desc=f"Processing {class_name}...",
             ):
 
                 file_path = os.path.join(folder, h5_file_path)
@@ -57,6 +63,6 @@ def folder_as_class(folders, save_dir, train_prop=0.8):
 
 if __name__ == "__main__":
     folder_as_class(
-        ["/Users/neo/Documents/MODS/wsi-arch/examples"],
-        "/Users/neo/Documents/MODS/wsi-arch/tmp",
+        ["TCGA-LUAD_SimCLR_2024-03-14", "TCGA-LUSC_SimCLR_2024-04-08"],
+        "/media/hdd1/neo/LUAD-LUSC_FI",
     )
