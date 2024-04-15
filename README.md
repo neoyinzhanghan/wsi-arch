@@ -1,3 +1,2 @@
-# wsi-arch
-Th# wsi-arch
 # wsiarch
+Package designed for experimenting with different slide-level prediction models.

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='wsi-arch',
+    name='wsiarch',
     version='0.1',
     packages=find_packages(),
     author='Zhanghan Yin',
