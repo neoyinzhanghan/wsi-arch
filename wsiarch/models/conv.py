@@ -66,7 +66,7 @@ class SimpleConvNetModelPL(pl.LightningModule):
         num_epochs=10,
     ):
         super().__init__()
-        # Model Configuration
+        # Save the hparams attribute forom the init arguments
         self.save_hyperparameters()
 
         # Model architecture
