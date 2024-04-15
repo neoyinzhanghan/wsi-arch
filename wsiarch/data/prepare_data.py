@@ -63,6 +63,6 @@ def folder_as_class(folders, save_dir, train_prop=0.8):
 
 if __name__ == "__main__":
     folder_as_class(
-        ["TCGA-LUAD_SimCLR_2024-03-14", "TCGA-LUSC_SimCLR_2024-04-08"],
+        ["/media/hdd1/neo/TCGA-LUAD_SimCLR_2024-03-14", "/media/hdd1/neo/TCGA-LUSC_SimCLR_2024-04-08"],
         "/media/hdd1/neo/LUAD-LUSC_FI",
     )
