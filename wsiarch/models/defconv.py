@@ -22,8 +22,8 @@ class DeformConvNet(nn.Module):
         # Define the weight and bias for the deformable convolutional layer
         self.weight = nn.Parameter(torch.Tensor(out_channels, feature_dim, kernel_size, kernel_size))
         self.bias = nn.Parameter(torch.Tensor(out_channels))
-        nn.init.kaiming_uniform_(self.weight, a=0, mode='fan_out', nonlinearity='relu')
-        nn.init.constant_(self.bias, 0)
+        # nn.init.kaiming_uniform_(self.weight, a=0, mode='fan_out', nonlinearity='relu')
+        # nn.init.constant_(self.bias, 0)
 
         # Offset and mask for deformable convolution
         self.offset_mask = nn.Conv2d(
@@ -32,7 +32,7 @@ class DeformConvNet(nn.Module):
             kernel_size=kernel_size,
             stride=stride,
             padding=padding
-        )
+        ) ### IN GENERAL HOW IS THE OFFSET COMPUTED? DEFINITELY NOT A CONVOLUTIONAL LAYER???
 
         # Define a pooling layer that outputs a fixed size
         self.pool = nn.AdaptiveAvgPool2d(output_size)

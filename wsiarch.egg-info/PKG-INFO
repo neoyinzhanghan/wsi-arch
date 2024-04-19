@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: wsiarch
+Version: 0.1
+Summary: A package of WSI slide-level prediction architectures
+Author: Zhanghan Yin
+Author-email: yinzhang@berkeley.edu

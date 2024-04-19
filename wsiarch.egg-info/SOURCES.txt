@@ -1,0 +1,17 @@
+README.md
+setup.py
+wsiarch/__init__.py
+wsiarch.egg-info/PKG-INFO
+wsiarch.egg-info/SOURCES.txt
+wsiarch.egg-info/dependency_links.txt
+wsiarch.egg-info/top_level.txt
+wsiarch/data/__init__.py
+wsiarch/data/dataloaders.py
+wsiarch/data/load_h5.py
+wsiarch/data/prepare_data.py
+wsiarch/data/wsi_utils.py
+wsiarch/models/__init__.py
+wsiarch/models/amp.py
+wsiarch/models/cconv.py
+wsiarch/models/conv.py
+wsiarch/models/defconv.py

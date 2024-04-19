@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import torch
+import openslide
 
 
 def find_minimum_separation(coords):
