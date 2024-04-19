@@ -7,6 +7,7 @@ from tqdm import tqdm
 from pathlib import Path
 from wsiarch.data.load_h5 import h5_to_standard_format
 from wsiarch.data.wsi_utils import get_thumbnail
+from torchvision.transforms import ToTensor
 
 
 def find_wsi_path(wsi_paths, h5_file_path):
@@ -80,16 +81,18 @@ def folder_as_class(folders, wsi_dirs, save_dir, train_prop=0.8):
                 ), f"Could not find wsi path for {h5_file_path}"
                 thumbnail = get_thumbnail(wsi_path)
 
+                thumbnail_tensor = ToTensor()(thumbnail)
                 # Create the h5 file
                 idx_h5_path = save_dir_path / f"{idx}.h5"
+
+                # first convert the thumbnail to a numpy array from PIL
+                thumbnail = torch.tensor(thumbnail)
 
                 with h5py.File(idx_h5_path, "w") as idx_h5_file:
                     idx_h5_file.create_dataset("coords", data=coords)
                     idx_h5_file.create_dataset("pix_coords", data=pix_coords)
                     idx_h5_file.create_dataset("feature_image", data=feature_image)
-                    idx_h5_file.create_dataset(
-                        "thumbnail", data=torch.tensor(thumbnail)
-                    )
+                    idx_h5_file.create_dataset("thumbnail", data=thumbnail_tensor)
 
                 # Record metadata
                 writer.writerow([idx, h5_file_path, class_name, split])
