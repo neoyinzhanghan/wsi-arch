@@ -85,9 +85,6 @@ def folder_as_class(folders, wsi_dirs, save_dir, train_prop=0.8):
                 # Create the h5 file
                 idx_h5_path = save_dir_path / f"{idx}.h5"
 
-                # first convert the thumbnail to a numpy array from PIL
-                thumbnail = torch.tensor(thumbnail)
-
                 with h5py.File(idx_h5_path, "w") as idx_h5_file:
                     idx_h5_file.create_dataset("coords", data=coords)
                     idx_h5_file.create_dataset("pix_coords", data=pix_coords)
