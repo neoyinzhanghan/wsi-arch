@@ -103,9 +103,10 @@ if __name__ == "__main__":
     # )
 
     folder_as_class(
-        [
+        folders=[
             "/media/hdd1/neo/TCGA-LUAD_SimCLR_2024-03-14",
             "/media/hdd1/neo/TCGA-LUSC_SimCLR_2024-04-08",
         ],
-        "/media/hdd1/neo/LUAD-LUSC_FI",
+        wsi_dirs=["/media/ssd1/TCGA_WSI/TCGA-LUAD", "/media/ssd1/TCGA_WSI/TCGA-LUSC"],
+        save_dir="/media/hdd1/neo/LUAD-LUSC_FI",
     )
