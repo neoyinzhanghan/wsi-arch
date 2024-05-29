@@ -10,22 +10,24 @@ from torch.utils.data import DataLoader as Dataloader
 
 
 def random_up_padding(feature_image, height_max, width_max):
-    # the feature image should have shape (depth, width, height) and height should be <= height_max, width should be <= width_max
+    # The feature image should have shape (depth, height, width) where height <= height_max and width <= width_max
     depth, height, width = feature_image.shape
     assert (
         width <= width_max and height <= height_max
     ), f"The width {width} and height {height} should be less than or equal to width_max {width_max} and height_max {height_max} respectively."
 
-    # create a tensor of zeros with shape (depth, width_max, height_max) by randomly finding the top left corner to place the feature image, the rest of the tensor will be zeros\
-    padded_feature_image = np.zeros((depth, width_max, height_max))
+    # Create a tensor of zeros with shape (depth, height_max, width_max)
+    padded_feature_image = np.zeros((depth, height_max, width_max))
 
-    # randomly find the top left corner to place the feature image
-    top_left_x = np.random.randint(0, width_max - width)
-    top_left_y = np.random.randint(0, height_max - height)
+    # Randomly find the top left corner to place the feature image
+    top_left_corner_y = np.random.randint(0, height_max - height + 1)
+    top_left_corner_x = np.random.randint(0, width_max - width + 1)
 
-    # place the feature image in the padded_feature_image tensor
+    # Place the feature image within the padded tensor
     padded_feature_image[
-        :, top_left_x : top_left_x + width, top_left_y : top_left_y + height
+        :,
+        top_left_corner_y : top_left_corner_y + height,
+        top_left_corner_x : top_left_corner_x + width,
     ] = feature_image
 
     return padded_feature_image
