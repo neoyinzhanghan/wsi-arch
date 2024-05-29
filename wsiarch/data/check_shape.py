@@ -12,6 +12,9 @@ h5_paths = [os.path.join(data_dir, f) for f in h5_files]
 shape_df = {
     "h5_path": [],
     "feature_image_shape": [],
+    "depth": [],
+    "width": [],
+    "height": [],
 }
 
 for h5_path in tqdm(h5_paths, desc="Checking shapes..."):
@@ -20,6 +23,11 @@ for h5_path in tqdm(h5_paths, desc="Checking shapes..."):
 
     shape_df["h5_path"].append(h5_path)
     shape_df["feature_image_shape"].append(feature_image_shape)
+
+    depth, height, width = feature_image_shape
+    shape_df["depth"].append(depth)
+    shape_df["width"].append(width)
+    shape_df["height"].append(height)
 
 shape_df = pd.DataFrame(shape_df)
 
