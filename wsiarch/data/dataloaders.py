@@ -58,7 +58,10 @@ class FeatureImageDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        h5_path = os.path.join(self.root_dir, self.metadata.iloc[idx]["idx"] + ".h5")
+        h5_path = os.path.join(
+            self.root_dir, str(self.metadata.iloc[idx]["idx"]) + ".h5"
+        )
+
         h5_file = h5py.File(h5_path, "r")
 
         # get the "feature_image" dataset
