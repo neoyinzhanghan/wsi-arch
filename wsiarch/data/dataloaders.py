@@ -73,6 +73,8 @@ class FeatureImageDataset(Dataset):
 
         if self.transform:
             sample = self.transform(feature_image)
+        else:
+            sample = torch.tensor(feature_image, dtype=torch.float32)
 
         return sample
 
