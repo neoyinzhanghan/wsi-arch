@@ -442,6 +442,26 @@ class HyenaFilter2D(OptimModule):
         return y
 
 
+class CustomProjection2D(nn.Module):
+    def __init__(self, d_model, inner_width):
+        super().__init__()
+        self.in_proj = nn.Linear(d_model, inner_width)
+
+    def forward(self, u):
+        b, d, h, w = u.shape
+
+        # Reshape u to (b * h * w, d), combining batches, height, and width
+        u = u.permute(0, 2, 3, 1).reshape(b * h * w, d)
+
+        # Apply the linear transformation
+        u_transformed = self.in_proj(u)
+
+        # Reshape back to (b, h, w, inner_width)
+        u_transformed = u_transformed.view(b, h, w, -1).permute(0, 3, 1, 2)
+
+        return u_transformed
+
+
 class HyenaOperator2D(nn.Module):
     def __init__(
         self,
@@ -463,10 +483,10 @@ class HyenaOperator2D(nn.Module):
         self.order = order
         inner_width = d_model * (order + 1)
         self.dropout = nn.Dropout(dropout)
-        self.in_proj = nn.Linear(
+        self.in_proj = CustomProjection2D(
             d_model, inner_width
         )  # you are not changing the dimension of the input token embedding
-        self.out_proj = nn.Linear(d_model, d_model)
+        self.out_proj = CustomProjection2D(d_model, d_model)
 
         # This part is what goes into the initial projection before the Hyena recurrence
         short_kernel_size = 3
