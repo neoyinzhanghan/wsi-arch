@@ -39,17 +39,23 @@ class HyenaModelPL(pl.LightningModule):
             filter_dropout=filter_dropout,
         )
 
-        self.linear1 = nn.Linear(d_model * width_max * height_max, 2048)
-        self.relu1 = nn.ReLU()
-        self.linear2 = nn.Linear(2048, 1024)
-        self.relu2 = nn.ReLU()
-        self.linear3 = nn.Linear(1024, 512)
-        self.relu3 = nn.ReLU()
-        self.linear4 = nn.Linear(512, 128)
-        self.relu4 = nn.ReLU()
-        self.linear5 = nn.Linear(128, num_classes)
+        # apply max pooling to the output of the Hyena layer
+        self.maxpool = nn.AdaptiveMaxPool2d((1, 1))
 
-        self.loss_fn = nn.CrossEntropyLoss()
+        # Fully connected layers
+        self.linear1 = nn.Linear(d_model, 1024)
+        self.relu1 = nn.ReLU()
+
+        self.linear2 = nn.Linear(1024, 512)
+        self.relu2 = nn.ReLU()
+
+        self.linear3 = nn.Linear(512, 256)
+        self.relu3 = nn.ReLU()
+
+        self.linear4 = nn.Linear(256, 128)
+        self.relu4 = nn.ReLU()
+
+        self.linear5 = nn.Linear(128, num_classes)
 
         # Metrics
         self.train_accuracy = Accuracy()
@@ -65,7 +71,7 @@ class HyenaModelPL(pl.LightningModule):
 
     def forward(self, x):
         x = self.hyena_layer(x)
-        x = x.flatten(start_dim=1)
+        x = self.maxpool(x)
         x = self.linear1(x)
         x = self.relu1(x)
         x = self.linear2(x)
