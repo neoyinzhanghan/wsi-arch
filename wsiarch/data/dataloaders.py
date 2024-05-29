@@ -2,8 +2,9 @@ import torch
 import os
 import pandas as pd
 import h5py
-from PIL import Image
 import pytorch_lightning as pl
+import numpy as np
+from PIL import Image
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader as Dataloader
 
@@ -16,13 +17,11 @@ def random_up_padding(feature_image, width_max, height_max):
     ), f"The width {width} and height {height} should be less than or equal to width_max {width_max} and height_max {height_max} respectively."
 
     # create a tensor of zeros with shape (depth, width_max, height_max) by randomly finding the top left corner to place the feature image, the rest of the tensor will be zeros\
-    padded_feature_image = torch.zeros(
-        (depth, width_max, height_max), dtype=torch.float32
-    )
+    padded_feature_image = np.zeros((depth, width_max, height_max))
 
     # randomly find the top left corner to place the feature image
-    top_left_x = torch.randint(0, width_max - width, (1,)).item()
-    top_left_y = torch.randint(0, height_max - height, (1,)).item()
+    top_left_x = np.random.randint(0, width_max - width)
+    top_left_y = np.random.randint(0, height_max - height)
 
     # place the feature image in the padded_feature_image tensor
     padded_feature_image[
