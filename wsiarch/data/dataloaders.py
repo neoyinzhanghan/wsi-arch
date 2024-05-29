@@ -1,6 +1,7 @@
 import torch
 import os
 import pandas as pd
+import h5py
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader as Dataloader
 
@@ -9,7 +10,7 @@ class FeatureImageDataset(Dataset):
     def __init__(self, root_dir, metadata_file, split, transform=None):
         """
         Args:
-            root_dir (string): Directory with all the subfolders.
+            root_dir (string): Directory with all the h5 files.
             metadata_file ( string): Path to the metadata csv file.
             split (string): One of 'train' or 'val' to specify which split to load.
             transform (callable, optional): Optional transform to be applied on a sample.
@@ -27,15 +28,14 @@ class FeatureImageDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        img_name = os.path.join(
-            self.root_dir, self.metadata.iloc[idx]["idx"], "feature_image.pt"
-        )
-        image = torch.load(img_name)
-        label = self.metadata.iloc[idx]["class"]
-        sample = {"image": image, "label": label}
+        h5_path = os.path.join(self.root_dir, self.metadata.iloc[idx]["idx"] + ".h5")
+        h5_file = h5py.File(h5_path, "r")
+
+        # get the "feature_image" dataset
+        feature_image = h5_file["feature_image"][:]
 
         if self.transform:
-            sample = self.transform(sample)
+            sample = self.transform(feature_image)
 
         return sample
 
