@@ -58,16 +58,17 @@ class HyenaModelPL(pl.LightningModule):
         self.linear5 = nn.Linear(128, num_classes)
 
         # Metrics
-        self.train_accuracy = Accuracy()
-        self.val_accuracy = Accuracy()
-        self.test_accuracy = Accuracy()
+        self.train_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
+        self.val_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
+        self.test_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
 
         self.train_f1 = F1Score(num_classes=num_classes, task="multiclass")
         self.val_f1 = F1Score(num_classes=num_classes, task="multiclass")
         self.test_f1 = F1Score(num_classes=num_classes, task="multiclass")
 
-        self.val_auroc = AUROC(num_classes=num_classes)
-        self.test_auroc = AUROC(num_classes=num_classes)
+        self.train_auroc = AUROC(num_classes=num_classes, task="multiclass")
+        self.val_auroc = AUROC(num_classes=num_classes, task="multiclass")
+        self.test_auroc = AUROC(num_classes=num_classes, task="multiclass")
 
     def forward(self, x):
         x = self.hyena_layer(x)
@@ -90,6 +91,7 @@ class HyenaModelPL(pl.LightningModule):
         self.log("train_loss", loss)
         self.log("train_accuracy", self.train_accuracy(logits, y))
         self.log("train_f1", self.train_f1(logits, y))
+        self.log("train_auroc", self.train_auroc(logits, y))
         return loss
 
     def validation_step(self, batch, batch_idx):
