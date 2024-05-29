@@ -72,6 +72,13 @@ class HyenaModelPL(pl.LightningModule):
 
     def forward(self, x):
         x = self.hyena_layer(x)
+
+        print(x.shape)
+
+        import sys
+
+        sys.exit() # for debugging purposes
+
         x = self.maxpool(x)
         x = self.linear1(x)
         x = self.relu1(x)
