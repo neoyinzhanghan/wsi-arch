@@ -24,7 +24,7 @@ for h5_path in tqdm(h5_paths, desc="Checking shapes..."):
     shape_df["h5_path"].append(h5_path)
     shape_df["feature_image_shape"].append(feature_image_shape)
 
-    depth, height, width = feature_image_shape
+    depth, width, height = feature_image_shape
     shape_df["depth"].append(depth)
     shape_df["width"].append(width)
     shape_df["height"].append(height)
