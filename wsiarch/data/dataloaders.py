@@ -38,7 +38,7 @@ class FeatureImageDataset(Dataset):
         """
         Args:
             root_dir (string): Directory with all the h5 files.
-            metadata_file ( string): Path to the metadata csv file.
+            metadata_file (string): Path to the metadata csv file.
             split (string): One of 'train' or 'val' to specify which split to load.
             transform (callable, optional): Optional transform to be applied on a sample.
         """
@@ -49,6 +49,12 @@ class FeatureImageDataset(Dataset):
         self.metadata = self.metadata[self.metadata["split"] == split]
         self.width_max = width_max
         self.height_max = height_max
+
+        # Create a mapping from class names to indices
+        self.class_to_index = {
+            cls: idx for idx, cls in enumerate(self.metadata["class"].unique())
+        }
+        self.index_to_class = {idx: cls for cls, idx in self.class_to_index.items()}
 
     def __len__(self):
         return len(self.metadata)
@@ -76,7 +82,11 @@ class FeatureImageDataset(Dataset):
         else:
             sample = torch.tensor(feature_image, dtype=torch.float32)
 
-        return sample
+        # Get the class label
+        class_label = self.metadata.iloc[idx]["class"]
+        class_index = self.class_to_index[class_label]
+
+        return sample, class_index
 
 
 def create_data_loaders(
