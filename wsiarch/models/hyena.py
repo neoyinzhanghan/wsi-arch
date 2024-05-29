@@ -126,7 +126,7 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
         width_max=230,
         height_max=445,
         batch_size=32,
-        num_workers=12,
+        num_workers=9,
     )
 
     model = HyenaModelPL(
