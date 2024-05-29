@@ -9,9 +9,9 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader as Dataloader
 
 
-def random_up_padding(feature_image, width_max, height_max):
+def random_up_padding(feature_image, height_max, width_max):
     # the feature image should have shape (depth, width, height) and height should be <= height_max, width should be <= width_max
-    depth, width, height = feature_image.shape
+    depth, height, width = feature_image.shape
     assert (
         width <= width_max and height <= height_max
     ), f"The width {width} and height {height} should be less than or equal to width_max {width_max} and height_max {height_max} respectively."
@@ -90,7 +90,7 @@ class FeatureImageDataset(Dataset):
 
 
 def create_data_loaders(
-    root_dir, metadata_file, width_max, height_max, batch_size=32, num_workers=12
+    root_dir, metadata_file, height_max, width_max, batch_size=32, num_workers=12
 ):
 
     train_dataset = FeatureImageDataset(

@@ -502,8 +502,8 @@ class HyenaOperator2D(nn.Module):
         *x, v = uc.split(self.d_model, dim=1)
 
         k = self.filter_fn.filter(width_filter, height_filter)[0]
-        k = rearrange(k, "d (l w) -> d w l", w=height_filter)
-        bias = rearrange(self.filter_fn.bias, "(l w) -> w l", w=height_filter)
+        k = rearrange(k, "d (h w) -> d w h", w=height_filter)
+        bias = rearrange(self.filter_fn.bias, "(h w) -> w h", w=height_filter)
 
         for o, x_i in enumerate(reversed(x[1:])):
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
