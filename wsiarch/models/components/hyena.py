@@ -41,7 +41,12 @@ def fftconv2d(u, k, D):
     # add some assertion statements to check that u and D have the same number of channels
     assert (
         u.shape[1] == D.shape[1]
-    ), f"Number of channels in u ({u.shape[1]}) and D ({D.shape[1]}) must be the same"
+    ), f"Number of channels in the input tensor image u ({u.shape[1]}) [b c h w] and bias tensor D ({D.shape[1]}) must be the same"
+
+    # add some assertion statements to check that the number of channels in the kernel is the same as the number of channels in the input tensor
+    assert (
+        u.shape[1] == k.shape[0]
+    ), f"Number of channels in input tensor image u ({u.shape[1]}) [b c h w] and the kernel k ({k.shape[0]}) [c h w] must be the same in fftconv2d"
 
     img_width = u.shape[-1]
     img_height = u.shape[-2]
@@ -64,6 +69,11 @@ def fftconv2d(u, k, D):
 
     # add the bias term
     out = y + u * D.unsqueeze(-1).unsqueeze(-1)
+
+    # assert that the output tensor has the same shape as the input tensor
+    assert (
+        out.shape == u.shape
+    ), f"Output tensor shape {out.shape} should be the same as the input tensor shape {u.shape} in fftconv2d"
 
     return out.to(dtype=u.dtype)
 
@@ -107,6 +117,7 @@ class Sin(nn.Module):
 
         # you want to initialize the frequency parameter as a trainable parameter if train_freq is True
         # else you want to initialize it as a constant tensor
+        # w is the initialized value for the frequency parameter
         self.freq = (
             nn.Parameter(w * torch.ones(1, dim))
             if train_freq
@@ -115,8 +126,20 @@ class Sin(nn.Module):
 
     def forward(self, x):
 
+        # assert that self.freq can be broadcasted to the shape of the input tensor here taking the [1] us because of how the freq parameter is initialized
+        assert (
+            self.freq.shape[1] == x.shape[1]
+        ), f"Frequency tensor shape {self.freq.shape} should be broadcastable to the input tensor shape {x.shape} in Sin.forward"
+
         # apply the sinusoidal activation function to the input tensor element-wise
-        return torch.sin(self.freq * x)
+        output = torch.sin(self.freq * x)
+
+        # assert that the output tensor has the same shape as the input tensor
+        assert (
+            output.shape == x.shape
+        ), f"Output tensor shape {output.shape} should be the same as the input tensor shape {x.shape} in Sin.forward"
+
+        return output
 
 
 class PositionalEmbedding(OptimModule):
