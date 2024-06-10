@@ -556,8 +556,6 @@ class HyenaFilter2D(OptimModule):
         # This will give you a filter that is x wide and y high
         z_x, z_y, t_x, t_y = self.pos_emb(x, y)
 
-        print(z_x.shape, z_y.shape, t_x.shape, t_y.shape)
-
         height = z_x.shape[1]
         width = z_y.shape[1]
 
