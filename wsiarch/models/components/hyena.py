@@ -453,7 +453,6 @@ class HyenaFilter2D(OptimModule):
         print(z_x.shape, z_y.shape, t_x.shape, t_y.shape)
 
         import sys
-
         sys.exit()
         # z = torch.cat([z_x, z_y], dim=-1)
         # t = torch.cat([t_x, t_y], dim=-1)
