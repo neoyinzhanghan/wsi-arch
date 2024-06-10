@@ -231,6 +231,7 @@ class PositionalEmbedding2D(OptimModule):
         self.register("z_width", z_width, lr=lr_pos_emb)
         self.register("z_height", z_height, lr=lr_pos_emb)
         self.register("t_width", t_width, lr=0.0)
+        self.register("t_height", t_height, lr=0.0)
 
     def forward(self, x, y):
         return (
@@ -581,6 +582,7 @@ class HyenaOperator2D(nn.Module):
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
             v = self.filter_fn(v, width_filter, height_filter, k=k[o], bias=bias[o])
 
+        # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function 
 
         y = self.out_proj(y)
         return y
