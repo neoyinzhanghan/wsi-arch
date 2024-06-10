@@ -428,7 +428,7 @@ class HyenaFilter(OptimModule):
         self.bias = nn.Parameter(torch.randn(self.d_model))
         self.dropout = nn.Dropout(dropout)
 
-        act = Sin2D(dim=order, w=w)
+        act = Sin(dim=order, w=w)
         self.emb_dim = emb_dim
         assert (
             emb_dim % 2 != 0 and emb_dim >= 3
@@ -519,7 +519,7 @@ class HyenaFilter2D(OptimModule):
         self.bias = nn.Parameter(torch.randn(self.num_kernel_channels))
         self.dropout = nn.Dropout(dropout)
 
-        act = Sin(dim=linear_layer_width, w=w)
+        act = Sin2D(dim=linear_layer_width, w=w)
         self.emb_dim = emb_dim
         assert (
             emb_dim % 2 == 0 and emb_dim >= 6
