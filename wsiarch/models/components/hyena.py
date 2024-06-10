@@ -142,6 +142,44 @@ class Sin(nn.Module):
         return output
 
 
+class Sin2D(nn.Module):
+    """
+    A PyTorch module that applies a sinusoidal activation function to its input, with the optional of having a trainable frequency parameter.
+
+    Parameters:
+    dim: the dimension of the input tensor
+    """
+
+    def __init__(self, dim, w=10, train_freq=True):
+        super().__init__()
+
+        # you want to initialize the frequency parameter as a trainable parameter if train_freq is True
+        # else you want to initialize it as a constant tensor
+        # w is the initialized value for the frequency parameter
+        self.freq = (
+            nn.Parameter(w * torch.ones(1, 1, dim))
+            if train_freq
+            else w * torch.ones(1, 1, dim)
+        )
+
+    def forward(self, x):
+
+        # assert that self.freq can be broadcasted to the shape of the input tensor here taking the [1] us because of how the freq parameter is initialized
+        assert (
+            self.freq.shape[1] == x.shape[1]
+        ), f"Frequency tensor shape {self.freq.shape} should be broadcastable to the input tensor shape {x.shape} in Sin.forward"
+
+        # apply the sinusoidal activation function to the input tensor element-wise
+        output = torch.sin(self.freq * x)
+
+        # assert that the output tensor has the same shape as the input tensor
+        assert (
+            output.shape == x.shape
+        ), f"Output tensor shape {output.shape} should be the same as the input tensor shape {x.shape} in Sin.forward"
+
+        return output
+
+
 class PositionalEmbedding(OptimModule):
     def __init__(self, emb_dim: int, seq_len: int, lr_pos_emb: float = 1e-5, **kwargs):
         """Complex exponential positional embeddings for Hyena filters.
@@ -390,7 +428,7 @@ class HyenaFilter(OptimModule):
         self.bias = nn.Parameter(torch.randn(self.d_model))
         self.dropout = nn.Dropout(dropout)
 
-        act = Sin(dim=order, w=w)
+        act = Sin2D(dim=order, w=w)
         self.emb_dim = emb_dim
         assert (
             emb_dim % 2 != 0 and emb_dim >= 3
