@@ -146,12 +146,19 @@ class PositionalEmbedding(OptimModule):
     def __init__(self, emb_dim: int, seq_len: int, lr_pos_emb: float = 1e-5, **kwargs):
         """Complex exponential positional embeddings for Hyena filters.
         The embedding consists of [x, sin(f * x), cos(f * x)] for where f spans over the frequency bands.
+
+        Therefore the embedding dimension is equal to 1 + 2 * bands hence the number of bands must be odd and greater or equal to 3
+        See the paper appendix for more details.
         """
         super().__init__()
 
         self.seq_len = seq_len
         # The time embedding fed to the filteres is normalized so that t_f = 1
         t = torch.linspace(0, 1, self.seq_len)[None, :, None]  # 1, L, 1
+
+        assert (
+            emb_dim % 2 != 0 and emb_dim >= 3
+        ), "emb_dim must be odd and greater or equal to 3 (time, sine bands and cosine bands)"
 
         if emb_dim > 1:
             bands = (
@@ -165,7 +172,7 @@ class PositionalEmbedding(OptimModule):
 
         f = torch.linspace(1e-4, bands - 1, bands)[
             None, None
-        ]  # bands is the number of bands
+        ]  # bands is the number of bands, output shape is 1, 1, bands
         z = torch.exp(
             -1j * f * w
         )  # the shaoe if z here should be 1, L, bands (L here is the sequence length) after broadcasting
@@ -187,7 +194,10 @@ class PositionalEmbedding(OptimModule):
         # this is strange behavior because if the sequence is length L < seq_len, then the normalization factor should not have been seq_len, but L
         # based on how the paper described the positional encoding.
         # I think for now it is fine let's just leave it as it is, maybe we will see the reason for this later
-        return self.z[:, :L], self.t[:, :L]
+        return (
+            self.z[:, :L],
+            self.t[:, :L],
+        )  # shape of the first element is 1, L, 1 + 2 * bands and the second element is 1, L, 1
 
         # Actually now I think about it this makes sense, the paper just wasn't too clear about this
         # You HAVE TO set a maximum sequence length for the positional encoding and for the convolutional filter implicit parametrization
@@ -199,34 +209,53 @@ class PositionalEmbedding2D(OptimModule):
     ):
         """Complex exponential positional embeddings for Hyena filters for 2D input.
         We essentially apply positional embedding 1D for x and y dimensions separately and then concatenate them.
+
+        The pos emb is of the form [x , y] and all the sin bands for x and y and all the cosine bands for x and y concatenated
+        The dimension of the final embedding is 2 * ( 2 * bands + 1) = 4 * bands + 2 hence the emb_dim must be even and greater or equal to 6
+
+        See the paper appendix for more details.
         """
         super().__init__()
 
         self.width = width
         self.height = height
 
-        t_width = torch.linspace(0, 1, self.width)[None, :, None]
-        t_height = torch.linspace(0, 1, self.height)[None, :, None]
+        t_width = torch.linspace(0, 1, self.width)[
+            None, :, None
+        ]  # shape is 1, width, 1
+        t_height = torch.linspace(0, 1, self.height)[
+            None, :, None
+        ]  # shape is 1, height, 1
+
+        assert (
+            emb_dim % 2 == 0 and emb_dim >= 6
+        ), "emb_dim must be even and greater or equal to 6 (time_x, sine_x and cosine_x, time_y, sine_y, cosine_y)"
 
         if emb_dim > 1:
-            bands = (emb_dim - 1) // 2
+            bands = (emb_dim - 2) // 4
 
-        t_rescaled_width = torch.linspace(0, width - 1, width)[None, :, None]
+        t_rescaled_width = torch.linspace(0, width - 1, width)[
+            None, :, None
+        ]  # shape is 1, width, 1
         t_rescaled_height = torch.linspace(0, height - 1, height)[
             None, :, None
-        ]  # note that this may seen redundant but it is necessary for logging different lr
+        ]  # note that this may seen redundant but it is necessary for logging different lr, shape is 1, height, 1
 
         w_width = 2 * math.pi * t_rescaled_width / width
         w_height = (
             2 * math.pi * t_rescaled_height / height
         )  # note that this may seen redundant but it is necessary for logging different lr
 
-        f = torch.linspace(1e-4, bands - 1, bands)[None, None]
-        z_width = torch.exp(-1j * f * w_width)
-        z_height = torch.exp(-1j * f * w_height)
+        f = torch.linspace(1e-4, bands - 1, bands)[None, None]  # shape is 1, 1, bands
+        z_width = torch.exp(-1j * f * w_width)  # shape is 1, width, bands
+        z_height = torch.exp(-1j * f * w_height)  # shape is 1, height, bands
 
-        z_width = torch.cat([t_width, z_width.real, z_width.imag], dim=-1)
-        z_height = torch.cat([t_height, z_height.real, z_height.imag], dim=-1)
+        z_width = torch.cat(
+            [t_width, z_width.real, z_width.imag], dim=-1
+        )  # shape is 1, width, 1 + 2 * bands
+        z_height = torch.cat(
+            [t_height, z_height.real, z_height.imag], dim=-1
+        )  # shape is 1, height, 1 + 2 * bands
 
         self.register("z_width", z_width, lr=lr_pos_emb)
         self.register("z_height", z_height, lr=lr_pos_emb)
@@ -235,10 +264,10 @@ class PositionalEmbedding2D(OptimModule):
 
     def forward(self, x, y):
         return (
-            self.z_height[:, :x],
-            self.z_width[:, :y],
-            self.t_height[:, :x],
-            self.t_width[:, :y],
+            self.z_height[:, :x],  # shape is 1, x, 1 + 2 * bands
+            self.z_width[:, :y],  # shape is 1, y, 1 + 2 * bands
+            self.t_height[:, :x],  # shape is 1, x, 1
+            self.t_width[:, :y],  # shape is 1, y, 1
         )
 
 
@@ -289,16 +318,41 @@ class GaussianModulation2D(
         self.register("deltas", deltas, lr=modulation_lr)
 
     def forward(self, x, y, input):
-        """First we compute the value of the Gaussian function at a given location (the covariance matrix is sigma^2 * I)
-        Then we multiply the input by the value of the Gaussian function at that location
-        """
+        # Assuming x and y are coordinates for width and height respectively
+        height, width, emb_dim = input.shape  # get the dimensions from input
+
+        # Center coordinates
+        x_center = width / 2
+        y_center = height / 2
+
+        # Create mesh grids for x and y coordinates
+        x_grid = torch.arange(width).reshape(1, width) - x_center
+        y_grid = torch.arange(height).reshape(height, 1) - y_center
+
+        # Compute the squared distance from the center
+        x_centered_squared = x_grid**2
+        y_centered_squared = y_grid**2
 
         if self.modulate:
-            scaler = torch.exp(
-                -((x - input.size(-1) / 2) ** 2 + (y - input.size(-2) / 2) ** 2)
-                / (2 * self.deltas.abs() ** 2)
+            # Calculate the scalers with shape [height, width] using broadcasting
+            scalers = torch.exp(
+                -(
+                    (x_centered_squared + y_centered_squared)
+                    / (2 * self.deltas.abs() ** 2)
+                )
             )
-            output = input * scaler
+
+            # Add an extra dimension to make scalers [height, width, 1] for broadcasting over emb_dim
+            scalers = scalers.unsqueeze(2)  # scalers now have shape [height, width, 1]
+
+            # Modulate the input
+            output = (
+                input * scalers
+            )  # Broadcasting applies scalers across the embedding dimension
+
+        else:
+            output = input
+
         return output
 
 
@@ -357,7 +411,11 @@ class HyenaFilter(OptimModule):
 
         self.implicit_filter.append(nn.Linear(order, d_model, bias=False))
 
-        self.modulation = ExponentialModulation(d_model, **kwargs)
+        self.modulation = ExponentialModulation(
+            d_model, **kwargs
+        )  # NOTE TODO BUG here d_model means the number of channels kernel but that does not seem correct
+        # this means that the modulation bands are not parallel across the orders of the Hyena recurrence which iirc is not correct
+        # TODO actually this is something to ask the authors about for now let's just stick to this
 
         self.normalized = normalized
         for c in self.implicit_filter.children():
@@ -368,7 +426,9 @@ class HyenaFilter(OptimModule):
     def filter(self, L, *args, **kwargs):
         z, t = self.pos_emb(L)
         h = self.implicit_filter(z)
-        h = self.modulation(t, h)
+        h = self.modulation(
+            t, h
+        )  # so you need to unput the time embeddings to the modulation function
         return h  # this is the filter kernel function, and indeed you truncate the first L elements of the positional encoding
 
     def forward(self, x, L, k=None, bias=None, *args, **kwargs):
@@ -385,9 +445,10 @@ class HyenaFilter(OptimModule):
 class HyenaFilter2D(OptimModule):
     def __init__(
         self,
-        d_model,
+        num_kernel_channels,  # I renamed it to avoid confusion
         emb_dim=6,  # dim of input to MLP, augments with positional encoding
-        order=16,  # width of the implicit MLP, this is confusing because later, order refers to the depth of the Hyena recurrence
+        linear_layer_width=16,  # width of the implicit MLP, this is confusing because later, order refers to the depth of the Hyena recurrence
+        # this is the reason why I changed it to linear_layer_width instead of order, we also seem to need the actual order of the Hyena recurrence
         fused_fft_conv=False,
         height=1024,
         width=1024,
@@ -405,19 +466,22 @@ class HyenaFilter2D(OptimModule):
         Implicit long filter with modulation for 2D inputs.
 
         Args:
-            d_model: number of channels in the input
+            num_kernel_channels: number of channels in the OUTPUT kernel, note that this might not actually be equal to the channels in the output of hyena operator,
+                but equal to that times the order of the Hyena recurrence - 1
             emb_dim: dimension of the positional encoding (`emb_dim` - 1) // 2 is the number of bands
             order: width of the FFN
             num_inner_mlps: number of inner linear layers inside filter MLP
         """
         super().__init__()
-        self.d_model = d_model
+
+        self.linear_layer_width = linear_layer_width
+        self.num_kernel_channels = num_kernel_channels
         self.use_bias = bias
         self.fused_fft_conv = fused_fft_conv
-        self.bias = nn.Parameter(torch.randn(self.d_model))
+        self.bias = nn.Parameter(torch.randn(self.num_kernel_channels))
         self.dropout = nn.Dropout(dropout)
 
-        act = Sin(dim=order, w=w)
+        act = Sin(dim=linear_layer_width, w=w)
         self.emb_dim = emb_dim
         assert (
             emb_dim % 2 == 0 and emb_dim >= 6
@@ -429,16 +493,20 @@ class HyenaFilter2D(OptimModule):
         self.pos_emb = PositionalEmbedding2D(emb_dim, height, width, lr_pos_emb)
 
         self.implicit_filter = nn.Sequential(
-            nn.Linear(emb_dim, order),
+            nn.Linear(emb_dim, linear_layer_width),
             act,
         )
         for i in range(num_inner_mlps):
-            self.implicit_filter.append(nn.Linear(order, order))
+            self.implicit_filter.append(
+                nn.Linear(linear_layer_width, linear_layer_width)
+            )
             self.implicit_filter.append(act)
 
-        self.implicit_filter.append(nn.Linear(order, d_model, bias=False))
+        self.implicit_filter.append(
+            nn.Linear(linear_layer_width, self.num_kernel_channels, bias=False)
+        )
 
-        self.modulation = GaussianModulation2D(d_model, **kwargs)
+        self.modulation = GaussianModulation2D(num_kernel_channels, **kwargs)
 
         self.normalized = normalized
         for c in self.implicit_filter.children():
@@ -452,12 +520,43 @@ class HyenaFilter2D(OptimModule):
 
         print(z_x.shape, z_y.shape, t_x.shape, t_y.shape)
 
-        import sys
-        sys.exit()
-        # z = torch.cat([z_x, z_y], dim=-1)
-        # t = torch.cat([t_x, t_y], dim=-1)
-        # h = self.implicit_filter(z)
-        # h = self.modulation(x, y, h)
+        height = z_x.shape[1]
+        width = z_y.shape[1]
+
+        # first remove the redundant dimension
+        z_x = z_x.squeeze(0)  # now z_x has shape (height, emb_1)
+        z_y = z_y.squeeze(0)  # now z_y has shape (width, emb_2)
+
+        z_x_expanded = z_x.unsqueeze(1)  # Now z_x has shape (height, 1, emb_1)
+        # Repeat to expand across the new width dimension
+        z_x_expanded = z_x_expanded.repeat(
+            1, width, 1
+        )  # Now z_x has shape (height, width, emb_1)
+
+        z_y_expanded = z_y.unsqueeze(0)  # Now z_y has shape (1, width, emb_2)
+        # Repeat to expand across the new height dimension
+        z_y_expanded = z_y_expanded.repeat(height, 1, 1)
+
+        # now concate the two positional embeddings at the last dimension
+        z = torch.cat(
+            [z_x_expanded, z_y_expanded], dim=-1
+        )  # z should now have shape (height, width, emb_1 + emb_2 = emb_dim)
+
+        # Now do someting very similar with the t embeddings but squeeze the first dimension AND the last dimension
+        t_x = t_x.squeeze(0).squeeze(-1)  # Now t_x has shape (height)
+        t_y = t_y.squeeze(0).squeeze(-1)  # Now t_y has shape (width)
+
+        h = self.implicit_filter(z)
+
+        # assert that h has shape (height, width, num_kernel_channels)
+        assert h.shape == (
+            height,
+            width,
+            self.num_kernel_channels,
+        ), f"Output tensor shape {h.shape} should be (height, width, num_kernel_channels) in HyenaFilter2D.filter"
+
+        h = self.modulation(t_x, t_y, h)
+
         return h
 
     def forward(self, input, x, y, k=None, bias=None, *args, **kwargs):
@@ -533,14 +632,14 @@ class HyenaOperator2D(nn.Module):
         )  # 3 here is the kernel size of the convolutional layer
 
         self.filter_fn = HyenaFilter2D(
-            d_model * (order - 1),
+            d_model * (order - 1),  # NOTE the multiplication here!!!
             order=filter_order,
             height=height_max,
             width=width_max,
             channels=1,
             dropout=filter_dropout,
             **filter_args,
-        )  # we need to make sure that the HyenaFilter takes in b d h w and outputs b d h w
+        )  # we need to make sure that the HyenaFilter takes in b d h w and outputs b d h w in the forward method of HyenaFilter2D
 
     def forward(self, u, *args, **kwargs):
         width = u.size(-2)
@@ -579,7 +678,9 @@ class HyenaOperator2D(nn.Module):
         uc = self.short_filter(u_proj)[..., :height_filter, :width_filter]
         *x, v = uc.split(self.d_model, dim=1)
 
-        k = self.filter_fn.filter(height_filter, width_filter)[0]
+        k = self.filter_fn.filter(height_filter, width_filter, self.order - 1)
+
+        # TODO What is happening here is incredibly strange, because the output of the kernel function should have channels just d_model, but here it seems to suggest that it should be d_model * order
         k = rearrange(k, "h w (o d) -> o d h w", o=self.order - 1)
         bias = rearrange(self.filter_fn.bias, "(o d) -> o d", o=self.order - 1)
 
