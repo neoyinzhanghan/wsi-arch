@@ -195,7 +195,7 @@ class PositionalEmbedding(OptimModule):
 
 class PositionalEmbedding2D(OptimModule):
     def __init__(
-        self, emb_dim: int, width: int, height: int, lr_pos_emb: float = 1e-5, **kwargs
+        self, emb_dim: int, height: int, width: int, lr_pos_emb: float = 1e-5, **kwargs
     ):
         """Complex exponential positional embeddings for Hyena filters for 2D input.
         We essentially apply positional embedding 1D for x and y dimensions separately and then concatenate them.
@@ -235,10 +235,10 @@ class PositionalEmbedding2D(OptimModule):
 
     def forward(self, x, y):
         return (
-            self.z_width[:, :x],
             self.z_height[:, :y],
-            self.t_width[:, :x],
+            self.z_width[:, :x],
             self.t_height[:, :y],
+            self.t_width[:, :x],
         )
 
 
@@ -389,8 +389,8 @@ class HyenaFilter2D(OptimModule):
         emb_dim=6,  # dim of input to MLP, augments with positional encoding
         order=16,  # width of the implicit MLP, this is confusing because later, order refers to the depth of the Hyena recurrence
         fused_fft_conv=False,
-        width=1024,
         height=1024,
+        width=1024,
         lr=1e-3,
         lr_pos_emb=1e-5,
         dropout=0.0,
@@ -426,7 +426,7 @@ class HyenaFilter2D(OptimModule):
         self.width = width
         self.height = height
 
-        self.pos_emb = PositionalEmbedding2D(emb_dim, width, height, lr_pos_emb)
+        self.pos_emb = PositionalEmbedding2D(emb_dim, height, width, lr_pos_emb)
 
         self.implicit_filter = nn.Sequential(
             nn.Linear(emb_dim, order),
@@ -530,12 +530,12 @@ class HyenaOperator2D(nn.Module):
         self.filter_fn = HyenaFilter2D(
             d_model * (order - 1),
             order=filter_order,
-            width=width_max,
             height=height_max,
+            width=width_max,
             channels=1,
             dropout=filter_dropout,
             **filter_args,
-        )
+        )  # we need to make sure that the HyenaFilter takes in b d h w and outputs b d h w
 
     def forward(self, u, *args, **kwargs):
         width = u.size(-2)
@@ -574,15 +574,15 @@ class HyenaOperator2D(nn.Module):
         uc = self.short_filter(u_proj)[..., :height_filter, :width_filter]
         *x, v = uc.split(self.d_model, dim=1)
 
-        k = self.filter_fn.filter(width_filter, height_filter)[0]
-        k = rearrange(k, "d (h w) -> d w h", w=height_filter)
-        bias = rearrange(self.filter_fn.bias, "(h w) -> w h", w=height_filter)
+        k = self.filter_fn.filter(height_filter, width_filter)[0]
+        k = rearrange(k, "h w (o d) -> o d h w", o=self.order - 1)
+        bias = rearrange(self.filter_fn.bias, "(o d) -> o d", o=self.order - 1)
 
         for o, x_i in enumerate(reversed(x[1:])):
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
-            v = self.filter_fn(v, width_filter, height_filter, k=k[o], bias=bias[o])
+            v = self.filter_fn(v, height_filter, width_filter, k=k[o], bias=bias[o])
 
-        # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function 
+        # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function
 
         y = self.out_proj(y)
         return y
