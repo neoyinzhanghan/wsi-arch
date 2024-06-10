@@ -509,12 +509,15 @@ class HyenaOperator2D(nn.Module):
         self.in_proj = CustomProjection2D(
             d_model, inner_width
         )  # you are not changing the dimension of the input token embedding
-        self.out_proj = CustomProjection2D(d_model, d_model)
+        self.out_proj = CustomProjection2D(
+            d_model, d_model
+        )  # Make sure that in projection takes in [b d h w] and outputs also [b d h w]
 
         # This part is what goes into the initial projection before the Hyena recurrence
         short_kernel_size = 3
         short_kernel_padding = (short_kernel_size - 1) // 2
 
+        # TODO an error is raised here at the short filter that needs fixing
         self.short_filter = nn.Conv2d(
             inner_width,
             inner_width,
@@ -538,10 +541,36 @@ class HyenaOperator2D(nn.Module):
         height = u.size(-3)
         width_filter = min(width, self.width_max)
         height_filter = min(height, self.height_max)
-        u = self.in_proj(u)
-        u = rearrange(u, "b h w d -> b d h w")
 
-        uc = self.short_filter(u)[..., :height_filter, :width_filter]
+        # u should have shape, batch, d_model, height, width, check d_model and make sure height <= height_max and width <= width_max
+
+        assert (
+            u.size(-1) <= self.width_max
+        ), f"Input width {u.size(-1)} should be less than or equal to the maximum width {self.width_max}"
+        assert (
+            u.size(-2) <= self.height_max
+        ), f"Input height {u.size(-2)} should be less than or equal to the maximum height {self.height_max}"
+        assert (
+            u.size(1) == self.d_model
+        ), f"Input token embedding dimension {u.size(1)} should be equal to the model dimension {self.d_model}"
+
+        u_proj = self.in_proj(u)
+        # u = rearrange(u, "b h w d -> b d h w") this is not necessary because the input projection already does this
+
+        # assert that the input projection has the batch, height and width dimensions in the right order
+        assert u_proj.size(0) == u.size(
+            0
+        ), f"Batch dimension of input projection {u_proj.size(0)} should be equal to the batch dimension of the input tensor {u.size(0)}"
+
+        assert u_proj.size(2) == u.size(
+            2
+        ), f"Height dimension of input projection {u_proj.size(2)} should be equal to the height dimension of the input tensor {u.size(2)}"
+
+        assert u_proj.size(3) == u.size(
+            3
+        ), f"Width dimension of input projection {u_proj.size(3)} should be equal to the width dimension of the input tensor {u.size(3)}"
+
+        uc = self.short_filter(u_proj)[..., :height_filter, :width_filter]
         *x, v = uc.split(self.d_model, dim=1)
 
         k = self.filter_fn.filter(width_filter, height_filter)[0]
@@ -552,7 +581,6 @@ class HyenaOperator2D(nn.Module):
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
             v = self.filter_fn(v, width_filter, height_filter, k=k[o], bias=bias[o])
 
-        y = rearrange(v * x[0], "b d h w -> b h w d")
 
         y = self.out_proj(y)
         return y
