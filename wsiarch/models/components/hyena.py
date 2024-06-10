@@ -127,8 +127,8 @@ class Sin(nn.Module):
     def forward(self, x):
 
         # assert that self.freq can be broadcasted to the shape of the input tensor here taking the [1] us because of how the freq parameter is initialized
-        assert (
-            self.freq.shape[1] == x.shape[1]
+        assert self.freq.shape[-1] == x.shape[-1] and len(self.freq.shape) == len(
+            x.shape
         ), f"Frequency tensor shape {self.freq.shape} should be broadcastable to the input tensor shape {x.shape} in Sin.forward"
 
         # apply the sinusoidal activation function to the input tensor element-wise
