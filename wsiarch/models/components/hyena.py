@@ -235,10 +235,10 @@ class PositionalEmbedding2D(OptimModule):
 
     def forward(self, x, y):
         return (
-            self.z_height[:, :y],
-            self.z_width[:, :x],
-            self.t_height[:, :y],
-            self.t_width[:, :x],
+            self.z_height[:, :x],
+            self.z_width[:, :y],
+            self.t_height[:, :x],
+            self.t_width[:, :y],
         )
 
 
@@ -449,6 +449,11 @@ class HyenaFilter2D(OptimModule):
     def filter(self, x, y, *args, **kwargs):
         # This will give you a filter that is x wide and y high
         z_x, z_y, t_x, t_y = self.pos_emb(x, y)
+
+        print(z_x.shape, z_y.shape, t_x.shape, t_y.shape)
+
+        import sys
+        sys.exit()
         z = torch.cat([z_x, z_y], dim=-1)
         t = torch.cat([t_x, t_y], dim=-1)
         h = self.implicit_filter(z)
