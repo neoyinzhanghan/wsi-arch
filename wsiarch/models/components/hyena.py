@@ -453,11 +453,12 @@ class HyenaFilter2D(OptimModule):
         print(z_x.shape, z_y.shape, t_x.shape, t_y.shape)
 
         import sys
+
         sys.exit()
-        z = torch.cat([z_x, z_y], dim=-1)
-        t = torch.cat([t_x, t_y], dim=-1)
-        h = self.implicit_filter(z)
-        h = self.modulation(x, y, h)
+        # z = torch.cat([z_x, z_y], dim=-1)
+        # t = torch.cat([t_x, t_y], dim=-1)
+        # h = self.implicit_filter(z)
+        # h = self.modulation(x, y, h)
         return h
 
     def forward(self, input, x, y, k=None, bias=None, *args, **kwargs):
