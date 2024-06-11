@@ -70,6 +70,8 @@ class HyenaModelPL(pl.LightningModule):
         self.val_auroc = AUROC(num_classes=num_classes, task="multiclass")
         self.test_auroc = AUROC(num_classes=num_classes, task="multiclass")
 
+        self.loss_fn = nn.CrossEntropyLoss()
+
     def forward(self, x):
 
         # what is the height and width of x?
