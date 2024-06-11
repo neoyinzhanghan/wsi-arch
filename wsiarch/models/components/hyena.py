@@ -598,7 +598,7 @@ class HyenaFilter2D(OptimModule):
                 optim = {"weight_decay": wd, "lr": lr}
                 setattr(getattr(c, name), "_optim", optim)
 
-    def filter(self, x, y, *args, **kwargs):
+    def filter(self, x, y):
         # This will give you a filter that is x wide and y high
         z_x, z_y, t_x, t_y = self.pos_emb(x, y)
 
@@ -641,12 +641,12 @@ class HyenaFilter2D(OptimModule):
 
         return h
 
-    def forward(self, input, x, y, k=None, bias=None, *args, **kwargs):
-        if k is None:
-            k = self.filter(x, y)
+    def forward(self, input, k, bias=None):
+        # if k is None:
+        #     k = self.filter(x, y) # NOTE This is going to be buggy and lead to untraceable or silent failures so I removed it
 
-        # Ensure compatibility with filters that return a tuple
-        k = k[0] if type(k) is tuple else k
+        # # Ensure compatibility with filters that return a tuple
+        # k = k[0] if type(k) is tuple else k # NOTE This is going to be buggy and lead to untraceable or silent failures so I removed it
 
         y = fftconv2d(input, k, bias)
         return y
@@ -760,7 +760,7 @@ class HyenaOperator2D(nn.Module):
         uc = self.short_filter(u_proj)[..., :height_filter, :width_filter]
         *x, v = uc.split(self.d_model, dim=1)
 
-        k = self.filter_fn.filter(height_filter, width_filter, self.order - 1)
+        k = self.filter_fn.filter(height_filter, width_filter)
 
         # TODO What is happening here is incredibly strange, because the output of the kernel function should have channels just d_model, but here it seems to suggest that it should be d_model * order
         k = rearrange(k, "h w (o d) -> o d h w", o=self.order - 1)
@@ -768,7 +768,7 @@ class HyenaOperator2D(nn.Module):
 
         for o, x_i in enumerate(reversed(x[1:])):
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
-            v = self.filter_fn(v, height_filter, width_filter, k=k[o], bias=bias[o])
+            v = self.filter_fn(v, k=k[o], bias=bias[o])
 
         # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function
 
