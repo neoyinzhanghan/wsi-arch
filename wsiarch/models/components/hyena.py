@@ -363,19 +363,20 @@ class GaussianModulation2D(
         x_center = width / 2
         y_center = height / 2
 
-        # assert the height is equal to the dimension of the first dimension of x_center
-        assert (
-            height == x_center.shape[0]
-        ), f"Height of the input tensor {height} should be equal to the dimension of the first dimension of x_center {x_center.shape[0]} in GaussianModulation2D.forward"
-
-        # assert the width is equal to the dimension of the first dimension of y_center
-        assert (
-            width == y_center.shape[0]
-        ), f"Width of the input tensor {width} should be equal to the dimension of the first dimension of y_center {y_center.shape[0]} in GaussianModulation2D.forward"
-
         # Create mesh grids for x and y coordinates
         x_grid = torch.arange(width).reshape(1, width) - x_center
         y_grid = torch.arange(height).reshape(height, 1) - y_center
+
+        # assert the height is equal to the dimension of the first dimension of x_grid
+        assert (
+            height == x_grid.shape[0]
+        ), f"Height of the input tensor {height} should be equal to the dimension of the first dimension of x_center {x_center.shape[0]} in GaussianModulation2D.forward"
+
+        # assert the width is equal to the dimension of the first dimension of y_grid
+        assert (
+            width == y_grid.shape[0]
+        ), f"Width of the input tensor {width} should be equal to the dimension of the first dimension of y_center {y_center.shape[0]} in GaussianModulation2D.forward"
+
 
         # Compute the squared distance from the center
         x_centered_squared = x_grid**2
