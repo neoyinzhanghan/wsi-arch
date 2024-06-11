@@ -35,13 +35,16 @@ def fftconv2d(u, k, D):
     k: the convolutional kernel tensor, with shape (channels, kernel_height, kernel_width)
     D: a kind of bias tensor applied element-wise multiplication to the input to obtain a bias term added to the convolutional output. Should be broadcastable to the input tensor.
 
+    u is shape [b, d_model, height, width]
+    k is shape [d_model, height, width]
+    bias is shape [d_model]
 
     """
 
     # add some assertion statements to check that u and D have the same number of channels
     assert (
-        u.shape[1] == D.shape[1]
-    ), f"Number of channels in the input tensor image u ({u.shape[1]}) [b c h w] and bias tensor D ({D.shape[1]}) must be the same"
+        u.shape[1] == D.shape[0]
+    ), f"Number of channels in the input tensor image u ({u.shape[1]}) [b c h w] and bias tensor D ({D.shape[0]}) must be the same"
 
     # add some assertion statements to check that the number of channels in the kernel is the same as the number of channels in the input tensor
     assert (
@@ -54,7 +57,9 @@ def fftconv2d(u, k, D):
     fft_height = 2 * img_height
     fft_width = 2 * img_width
 
-    k_expanded = k.unsqueeze(0).repeat(u.shape[0], 1, 1, 1)
+    k_expanded = k.unsqueeze(0).repeat(
+        u.shape[0], 1, 1, 1
+    )  # now the shape of k_expanded is [batch, d_model, height, width]
 
     # now we invoke the convolution theorem, first we compute the FFT of the kernel and the input using torch.fft.rfftn
     k_f = torch.fft.rfftn(k_expanded, s=(fft_height, fft_width), dim=(2, 3)) / (
@@ -62,20 +67,41 @@ def fftconv2d(u, k, D):
     )
     u_f = torch.fft.rfftn(u, s=(fft_height, fft_width), dim=(2, 3))
 
+    # assert that u_f and k_f have the same shape
+    assert (
+        u_f.shape == k_f.shape
+    ), f"FFT of the input tensor u_f shape {u_f.shape} should be the same as the FFT of the kernel tensor k_f shape {k_f.shape} in fftconv2d"
+
     # now make an element-wise multiplication of the FFT of the input and the kernel
     y = torch.fft.irfftn(u_f * k_f, s=(fft_height, fft_width), dim=(2, 3))[
         ..., :img_height, :img_width
     ]
 
+    # assert that y have the same shape as the input tensor
+    assert (
+        y.shape == u.shape
+    ), f"Output tensor shape y {y.shape} should be the same as the input tensor shape {u.shape} in fftconv2d"
+
+    # now u has shape [b, d_model, height, width] and D has shape [d_model]
+    # D.unsqueeze(-1).unsqueeze(-1) will have shape [d_model, 1, 1]
+    bias_term = u * D.unsqueeze(-1).unsqueeze(-1)
+
+    # assert that the bias_term has the same shape as the input tensor u and as y
+    assert (
+        bias_term.shape == u.shape
+    ), f"Bias term shape {bias_term.shape} should be the same as the input tensor shape {u.shape} in fftconv2d"
+
     # add the bias term
-    out = y + u * D.unsqueeze(-1).unsqueeze(-1)
+    out = y + bias_term
 
     # assert that the output tensor has the same shape as the input tensor
     assert (
         out.shape == u.shape
-    ), f"Output tensor shape {out.shape} should be the same as the input tensor shape {u.shape} in fftconv2d"
+    ), f"Output tensor shape of final out {out.shape} should be the same as the input tensor shape {u.shape} in fftconv2d"
 
-    return out.to(dtype=u.dtype)
+    return out.to(
+        dtype=u.dtype
+    )  # the output tensor should have the same data type and shape as the input tensor which is [batch, channels, height, width]
 
 
 @torch.jit.script
@@ -649,6 +675,9 @@ class HyenaFilter2D(OptimModule):
         # k = k[0] if type(k) is tuple else k # NOTE This is going to be buggy and lead to untraceable or silent failures so I removed it
 
         y = fftconv2d(input, k, bias)
+        # input is shape [b, d_model, height, width]
+        # k is shape [d_model, height, width]
+        # bias is shape [d_model]
         return y
 
 
