@@ -363,9 +363,32 @@ class GaussianModulation2D(
         x_center = width / 2
         y_center = height / 2
 
-        # Create mesh grids for x and y coordinates
-        x_grid = torch.arange(width).reshape(1, width) - x_center
-        y_grid = torch.arange(height).reshape(height, 1) - y_center
+        # x has shape [height] and y has shape [width], use repeat to make them have shape [height, width]
+        x_grid = x.repeat(width, 1).T
+        y_grid = y.repeat(height, 1)
+
+        # assert that the shape of x_grid and y_grid is [height, width], and that they are indeed repeated elements of x and y
+        assert x_grid.shape == (
+            height,
+            width,
+        ), f"Shape of x_grid {x_grid.shape} should be (height, width) in GaussianModulation2D.forward"
+        assert y_grid.shape == (
+            height,
+            width,
+        ), f"Shape of y_grid {y_grid.shape} should be (height, width) in GaussianModulation2D.forward"
+
+        # now assert that the x and y coordinates are indeed repeated elements of x and y by checking number of unique elements
+        assert (
+            x_grid.unique().shape[0] == x.shape[0] and len(x_grid.unique().shape) == 1
+        ), f"Number of unique elements in x_grid {x_grid.unique().shape[0]} should be equal to the number of elements in x {x.shape[0]} in GaussianModulation2D.forward"
+
+        assert (
+            y_grid.unique().shape[0] == y.shape[0] and len(y_grid.unique().shape) == 1
+        ), f"Number of unique elements in y_grid {y_grid.unique().shape[0]} should be equal to the number of elements in y {y.shape[0]} in GaussianModulation2D.forward"
+
+        # Center the coordinates
+        x_grid = x_grid - x_center
+        y_grid = y_grid - y_center
 
         # assert the height is equal to the dimension of the first dimension of x_grid
         assert (
@@ -375,8 +398,7 @@ class GaussianModulation2D(
         # assert the width is equal to the dimension of the first dimension of y_grid
         assert (
             width == y_grid.shape[0]
-        ), f"Width of the input tensor {width} should be equal to the dimension of the first dimension of y_center {y_grid.shape[0]} in GaussianModulation2D.forward"
-
+        ), f"Width of the input tensor {width} should be equal to the dimension of the first dimension of y_center {y_grid.shape[1]} in GaussianModulation2D.forward"
 
         # Compute the squared distance from the center
         x_centered_squared = x_grid**2
