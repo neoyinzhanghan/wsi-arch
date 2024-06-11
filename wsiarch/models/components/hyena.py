@@ -370,12 +370,12 @@ class GaussianModulation2D(
         # assert the height is equal to the dimension of the first dimension of x_grid
         assert (
             height == x_grid.shape[0]
-        ), f"Height of the input tensor {height} should be equal to the dimension of the first dimension of x_center {x_center.shape[0]} in GaussianModulation2D.forward"
+        ), f"Height of the input tensor {height} should be equal to the dimension of the first dimension of x_center {x_grid.shape[0]} in GaussianModulation2D.forward"
 
         # assert the width is equal to the dimension of the first dimension of y_grid
         assert (
             width == y_grid.shape[0]
-        ), f"Width of the input tensor {width} should be equal to the dimension of the first dimension of y_center {y_center.shape[0]} in GaussianModulation2D.forward"
+        ), f"Width of the input tensor {width} should be equal to the dimension of the first dimension of y_center {y_grid.shape[0]} in GaussianModulation2D.forward"
 
 
         # Compute the squared distance from the center
