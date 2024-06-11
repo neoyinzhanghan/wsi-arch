@@ -397,7 +397,7 @@ class GaussianModulation2D(
 
         # assert the width is equal to the dimension of the first dimension of y_grid
         assert (
-            width == y_grid.shape[0]
+            width == y_grid.shape[1]
         ), f"Width of the input tensor {width} should be equal to the dimension of the first dimension of y_center {y_grid.shape[1]} in GaussianModulation2D.forward"
 
         # Compute the squared distance from the center
