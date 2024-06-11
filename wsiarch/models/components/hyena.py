@@ -714,7 +714,7 @@ class HyenaOperator2D(nn.Module):
         )  # 3 here is the kernel size of the convolutional layer
 
         self.filter_fn = HyenaFilter2D(
-            d_model * (order - 1),  # NOTE the multiplication here!!!
+            d_model * (order),  # NOTE the multiplication here!!!
             order=filter_order,
             height=height_max,
             width=width_max,
@@ -764,8 +764,8 @@ class HyenaOperator2D(nn.Module):
         k = self.filter_fn.filter(height_filter, width_filter)
 
         # TODO What is happening here is incredibly strange, because the output of the kernel function should have channels just d_model, but here it seems to suggest that it should be d_model * order
-        k = rearrange(k, "h w (o d) -> o d h w", o=self.order - 1)
-        bias = rearrange(self.filter_fn.bias, "(o d) -> o d", o=self.order - 1)
+        k = rearrange(k, "h w (o d) -> o d h w", o=self.order)
+        bias = rearrange(self.filter_fn.bias, "(o d) -> o d", o=self.order)
 
         print(k.shape, bias.shape)
 
