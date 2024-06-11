@@ -404,6 +404,15 @@ class GaussianModulation2D(
         x_centered_squared = x_grid**2
         y_centered_squared = y_grid**2
 
+        # print the shapes of x_centered_squared and y_centered_squared
+        print(
+            f"Shape of x_centered_squared {x_centered_squared.shape} and y_centered_squared {y_centered_squared.shape} in GaussianModulation2D.forward"
+        )
+
+        import sys
+
+        sys.exit()
+
         if self.modulate:
             # Calculate the scalers with shape [height, width] using broadcasting
             scalers = torch.exp(
