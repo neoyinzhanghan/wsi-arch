@@ -804,7 +804,7 @@ class HyenaOperator2D(nn.Module):
 
         # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function
 
-        y = self.out_proj(y)
+        y = self.out_proj(v)
         return y
 
 
