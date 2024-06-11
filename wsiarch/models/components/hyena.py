@@ -43,6 +43,7 @@ def fftconv2d(u, k, D):
     print(D.shape)
 
     import sys
+
     sys.exit()
 
     # add some assertion statements to check that u and D have the same number of channels
@@ -765,6 +766,11 @@ class HyenaOperator2D(nn.Module):
         ), f"Width dimension of input projection {u_proj.size(3)} should be equal to the width dimension of the input tensor {u.size(3)}"
 
         uc = self.short_filter(u_proj)[..., :height_filter, :width_filter]
+
+        print(uc.shape)
+        import sys
+
+        sys.exit()
         *x, v = uc.split(self.d_model, dim=1)
 
         k = self.filter_fn.filter(height_filter, width_filter)
