@@ -87,14 +87,15 @@ class HyenaModelPL(pl.LightningModule):
             x.shape[1] == self.hparams.d_model
         ), f"{x.shape[1]} != {self.hparams.d_model}"
 
+        # assert that x has shape (batch_size, d_model, height_max, width_max)
+        x = self.maxpool(x)
+
         print(x.shape)
 
         import sys
 
-        sys.exit() 
+        sys.exit()
 
-        # assert that x has shape (batch_size, d_model, height_max, width_max)
-        x = self.maxpool(x)
         x = self.linear1(x)
         x = self.relu1(x)
         x = self.linear2(x)
