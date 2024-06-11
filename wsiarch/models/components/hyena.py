@@ -767,13 +767,15 @@ class HyenaOperator2D(nn.Module):
         k = rearrange(k, "h w (o d) -> o d h w", o=self.order)
         bias = rearrange(self.filter_fn.bias, "(o d) -> o d", o=self.order)
 
-        print(k.shape, bias.shape)
-
-        import sys
-        sys.exit()
-
-        for o, x_i in enumerate(reversed(x[1:])):
+        for o, x_i in enumerate(
+            reversed(x)
+        ):  # i don't know what is the x[1:] for? We have already picked out the value v
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
+            print(v.shape, k[o].shape, bias[o].shape)
+
+            import sys
+
+            sys.exit()
             v = self.filter_fn(v, k=k[o], bias=bias[o])
 
         # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function
