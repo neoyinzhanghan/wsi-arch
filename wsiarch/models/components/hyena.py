@@ -38,14 +38,6 @@ def fftconv2d(u, k, D):
 
     """
 
-    print(u.shape)
-    print(k.shape)
-    print(D.shape)
-
-    import sys
-
-    sys.exit()
-
     # add some assertion statements to check that u and D have the same number of channels
     assert (
         u.shape[1] == D.shape[1]
