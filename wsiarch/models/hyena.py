@@ -71,7 +71,29 @@ class HyenaModelPL(pl.LightningModule):
         self.test_auroc = AUROC(num_classes=num_classes, task="multiclass")
 
     def forward(self, x):
+
+        # what is the height and width of x?
+        height_x, width__x = x.shape[-2], x.shape[-1]
         x = self.hyena_layer(x)
+
+        # assert that x has shape (batch_size, d_model, height_max, width_max)
+        assert (
+            x.shape[-2] == self.hparams.height_max
+        ), f"{x.shape[-2]} != {self.hparams.height_max}"
+        assert (
+            x.shape[-1] == self.hparams.width_max
+        ), f"{x.shape[-1]} != {self.hparams.width_max}"
+        assert (
+            x.shape[1] == self.hparams.d_model
+        ), f"{x.shape[1]} != {self.hparams.d_model}"
+
+        print(x.shape)
+
+        import sys
+
+        sys.exit() 
+
+        # assert that x has shape (batch_size, d_model, height_max, width_max)
         x = self.maxpool(x)
         x = self.linear1(x)
         x = self.relu1(x)
