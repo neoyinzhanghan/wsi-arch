@@ -351,13 +351,21 @@ class GaussianModulation2D(
         **kwargs,
     ):
         super().__init__()
+        self.d_model = d_model  # actually here the d_model needs to equal to the embedding dimension of the positional encoding
         self.modulate = modulate
-        deltas = torch.linspace(min_sigma, max_sigma, d_model)[None, None]
+        deltas = torch.linspace(min_sigma, max_sigma, d_model)[
+            None, None
+        ]  # the shape of deltas is [1, 1, d_model]
         self.register("deltas", deltas, lr=modulation_lr)
 
     def forward(self, x, y, input):
         # Assuming x and y are coordinates for width and height respectively
         height, width, emb_dim = input.shape  # get the dimensions from input
+
+        # TODO NOTE this might change in the future
+        assert (
+            emb_dim == self.d_model
+        ), f"Dimension of the input tensor {emb_dim} should be equal to the number of channels in the modulation kernel {self.d_model} in GaussianModulation2D.forward"
 
         # Center coordinates
         x_center = width / 2
@@ -404,26 +412,19 @@ class GaussianModulation2D(
         x_centered_squared = x_grid**2
         y_centered_squared = y_grid**2
 
-        # print the shapes of x_centered_squared and y_centered_squared
-        print(
-            f"Shape of x_centered_squared {x_centered_squared.shape} and y_centered_squared {y_centered_squared.shape} in GaussianModulation2D.forward"
-        )
-
-        import sys
-
-        sys.exit()
+        z = x_centered_squared + y_centered_squared
+        z_expanded = z.unsqueeze(-1)  # z now has shape [height, width, 1]
 
         if self.modulate:
             # Calculate the scalers with shape [height, width] using broadcasting
-            scalers = torch.exp(
-                -(
-                    (x_centered_squared + y_centered_squared)
-                    / (2 * self.deltas.abs() ** 2)
-                )
+            scalers = (1 / (self.deltas * torch.sqrt(2 * torch.pi))) * torch.exp(
+                -0.5 * (z_expanded / self.deltas) ** 2
             )
 
-            # Add an extra dimension to make scalers [height, width, 1] for broadcasting over emb_dim
-            scalers = scalers.unsqueeze(2)  # scalers now have shape [height, width, 1]
+            # check that the shape of scalers is same as input
+            assert (
+                scalers.shape == input.shape
+            ), f"Shape of scalers {scalers.shape} should be equal to the shape of the input tensor {input.shape} in GaussianModulation2D.forward"
 
             # Modulate the input
             output = (
