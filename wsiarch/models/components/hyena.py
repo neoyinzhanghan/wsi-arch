@@ -415,9 +415,12 @@ class GaussianModulation2D(
         z = x_centered_squared + y_centered_squared
         z_expanded = z.unsqueeze(-1)  # z now has shape [height, width, 1]
 
+        # Ensure torch.pi is a tensor
+        pi_tensor = torch.tensor(torch.pi)
+
         if self.modulate:
             # Calculate the scalers with shape [height, width] using broadcasting
-            scalers = (1 / (self.deltas * torch.sqrt(2 * torch.pi))) * torch.exp(
+            scalers = (1 / (self.deltas * torch.sqrt(2 * pi_tensor))) * torch.exp(
                 -0.5 * (z_expanded / self.deltas) ** 2
             )
 
