@@ -87,14 +87,14 @@ class HyenaModelPL(pl.LightningModule):
             x.shape[1] == self.hparams.d_model
         ), f"{x.shape[1]} != {self.hparams.d_model}"
 
-        # assert that x has shape (batch_size, d_model, height_max, width_max)
-        x = self.maxpool(x)
+        x = self.maxpool(x)  # now x has shape (batch_size, d_model, 1, 1)
 
-        print(x.shape)
+        # before passing x through the fully connected layers, we need to flatten it to shape (batch_size, d_model)
+        x = torch.flatten(x, 1)
 
-        import sys
-
-        sys.exit()
+        assert (
+            x.shape[1] == self.hparams.d_model and len(x.shape) == 2
+        ), f"Shape of x is {x.shape}, should be (batch_size, d_model)"
 
         x = self.linear1(x)
         x = self.relu1(x)
