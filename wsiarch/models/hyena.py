@@ -133,7 +133,7 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
         metadata_file=os.path.join(data_dir, "metadata.csv"),
         width_max=230,
         height_max=445,
-        batch_size=1,
+        batch_size=7,
         num_workers=9,
     )
 
