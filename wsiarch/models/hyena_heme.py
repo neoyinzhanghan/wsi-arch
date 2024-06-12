@@ -335,9 +335,9 @@ class HyenaModelPL(pl.LightningModule):
 
     def on_train_epoch_end(self):
         # Log the current learning rate
-        for scheduler in self.lr_schedulers():
-            current_lr = scheduler.get_last_lr()[0]
-            self.log("lr", current_lr)
+        scheduler = self.lr_schedulers()
+        current_lr = scheduler.get_last_lr()[0]
+        self.log("lr", current_lr)
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=0.001)
