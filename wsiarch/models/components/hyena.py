@@ -803,7 +803,9 @@ class HyenaOperator2D(nn.Module):
             v = self.filter_fn(v, k=k[o], bias=bias[o])
 
         # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function
-
+        print*(v.shape)
+        import sys
+        sys.exit()
         y = self.out_proj(v)
         return y
 
