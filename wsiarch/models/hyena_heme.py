@@ -277,13 +277,13 @@ class HyenaModelPL(pl.LightningModule):
         # assert that x has shape (batch_size, d_model, height_max, width_max)
         assert (
             x.shape[-2] == self.hparams.height_max
-        ), f"{x.shape[-2]} != {self.hparams.height_max}"
+        ), f"{x.shape[-2]} != {self.hparams.height_max}, which means the height of x is not correct"
         assert (
             x.shape[-1] == self.hparams.width_max
-        ), f"{x.shape[-1]} != {self.hparams.width_max}"
+        ), f"{x.shape[-1]} != {self.hparams.width_max}, which means the width of x is not correct"
         assert (
             x.shape[1] == self.hparams.d_model
-        ), f"{x.shape[1]} != {self.hparams.d_model}"
+        ), f"{x.shape[1]} != {self.hparams.d_model}, which means the depth of x is not correct"
 
         x = self.maxpool(x)  # now x has shape (batch_size, d_model, 1, 1)
 
