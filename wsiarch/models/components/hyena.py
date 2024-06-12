@@ -753,8 +753,8 @@ class HyenaOperator2D(nn.Module):
         )  # we need to make sure that the HyenaFilter takes in b d h w and outputs b d h w in the forward method of HyenaFilter2D
 
     def forward(self, u, *args, **kwargs):
-        width = u.size(-2)
-        height = u.size(-3)
+        width = u.size(-1)
+        height = u.size(-2)
         width_filter = min(width, self.width_max)
         height_filter = min(height, self.height_max)
 
