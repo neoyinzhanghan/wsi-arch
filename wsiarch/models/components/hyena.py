@@ -788,6 +788,11 @@ class HyenaOperator2D(nn.Module):
 
         uc = self.short_filter(u_proj)[..., :height_filter, :width_filter]
 
+        print(uc.shape)
+        import sys
+
+        sys.exit()
+
         *x, v = uc.split(self.d_model, dim=1)
 
         k = self.filter_fn.filter(height_filter, width_filter)
@@ -799,14 +804,10 @@ class HyenaOperator2D(nn.Module):
         for o, x_i in enumerate(
             reversed(x)
         ):  # i don't know what is the x[1:] for? We have already picked out the value v
-            print(v.shape,"v shape")
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
             v = self.filter_fn(v, k=k[o], bias=bias[o])
 
         # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function
-        import sys
-
-        sys.exit()
         y = self.out_proj(v)
         return y
 
