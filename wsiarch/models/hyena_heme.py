@@ -348,7 +348,7 @@ class HyenaModelPL(pl.LightningModule):
 
 
 # Main training loop
-def train_model(data_dir, num_gpus=3, num_epochs=10):
+def train_model(data_dir, num_gpus=3, num_epochs=50):
     data_module = ImageDataModule(
         data_dir=data_dir, batch_size=batch_size, downsample_factor=downsample_factor
     )
