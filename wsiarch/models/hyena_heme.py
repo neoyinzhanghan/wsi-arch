@@ -111,7 +111,7 @@ class DownsampledDataset(torch.utils.data.Dataset):
 
 
 class ImageDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir, batch_size, downsample_factor):
+    def __init__(self, data_dir, batch_size, downsample_factor=1):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size

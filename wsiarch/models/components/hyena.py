@@ -788,11 +788,6 @@ class HyenaOperator2D(nn.Module):
 
         uc = self.short_filter(u_proj)[..., :height_filter, :width_filter]
 
-        print(uc.shape)
-        import sys
-
-        sys.exit()
-
         *x, v = uc.split(self.d_model, dim=1)
 
         k = self.filter_fn.filter(height_filter, width_filter)
