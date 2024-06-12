@@ -799,11 +799,11 @@ class HyenaOperator2D(nn.Module):
         for o, x_i in enumerate(
             reversed(x)
         ):  # i don't know what is the x[1:] for? We have already picked out the value v
+            print(v.shape,"v shape")
             v = self.dropout(v * x_i)  # it seems like the default dropout is 0.0
             v = self.filter_fn(v, k=k[o], bias=bias[o])
 
         # y = rearrange(v * x[0], "b d h w -> b h w d") # rearranging is alraedy handled by the projection function
-        print(v.shape,"v shape")
         import sys
 
         sys.exit()
