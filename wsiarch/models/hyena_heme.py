@@ -37,7 +37,7 @@ num_gpus = 3
 num_workers = 20
 downsample_factor = 1
 batch_size = 32
-img_size = 224
+img_size = 96
 num_classes = 23
 
 ############################################################################
@@ -91,7 +91,7 @@ class DownsampledDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         image, label = self.dataset[idx]
         if self.downsample_factor > 1:
-            size = (224 // self.downsample_factor, 224 // self.downsample_factor)
+            size = (96 // self.downsample_factor, 96 // self.downsample_factor)
             image = transforms.functional.resize(image, size)
 
         # Convert image to RGB if not already
@@ -102,7 +102,7 @@ class DownsampledDataset(torch.utils.data.Dataset):
         if self.apply_augmentation:
             # Apply augmentation
             image = get_feat_extract_augmentation_pipeline(
-                image_size=224 // self.downsample_factor
+                image_size=96 // self.downsample_factor
             )(image=np.array(image))["image"]
 
         image = to_tensor(image)
@@ -357,8 +357,8 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
         d_model=3,
         num_classes=23,
         num_epochs=50,
-        width_max=224,
-        height_max=224,
+        width_max=96,
+        height_max=96,
         order=2,
         filter_order=64,
         dropout=0.0,
