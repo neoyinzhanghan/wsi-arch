@@ -270,14 +270,15 @@ class HyenaModelPL(pl.LightningModule):
 
     def forward(self, x):
 
-        print(x.shape)
-
-        import sys
-        sys.exit()
-
         # what is the height and width of x?
         height_x, width__x = x.shape[-2], x.shape[-1]
         x = self.hyena_layer(x)
+
+        print(x.shape)
+
+        import sys
+
+        sys.exit()
 
         # assert that x has shape (batch_size, d_model, height_max, width_max)
         assert (
