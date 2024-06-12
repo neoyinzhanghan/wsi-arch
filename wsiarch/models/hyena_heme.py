@@ -274,11 +274,6 @@ class HyenaModelPL(pl.LightningModule):
         height_x, width__x = x.shape[-2], x.shape[-1]
         x = self.hyena_layer(x)
 
-        print(x.shape, "shape of hyena layer output")
-
-        import sys
-        sys.exit()
-
         # assert that x has shape (batch_size, d_model, height_max, width_max)
         assert (
             x.shape[-2] == self.hparams.height_max
