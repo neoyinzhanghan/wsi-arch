@@ -30,8 +30,8 @@ from torch.utils.data import WeightedRandomSampler
 ####### DEFINE HYPERPARAMETERS AND DATA DIRECTORIES ########################
 ############################################################################
 
-num_epochs = 500
-default_config = {"lr": 3.56e-06}  # 1.462801279401232e-06}
+num_epochs = 50
+default_config = {"lr": 0.0005}  # 1.462801279401232e-06}
 data_dir = "/media/hdd1/neo/pooled_deepheme_data"
 num_gpus = 3
 num_workers = 20
@@ -216,7 +216,7 @@ class HyenaModelPL(pl.LightningModule):
         num_classes,
         width_max,
         height_max,
-        num_epochs=10,
+        num_epochs=num_epochs,
         order=2,
         filter_order=64,
         dropout=0.0,
@@ -340,7 +340,7 @@ class HyenaModelPL(pl.LightningModule):
         self.log("lr", current_lr)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=0.0005)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=default_config["lr"])
         scheduler = CosineAnnealingLR(
             optimizer, T_max=self.hparams.num_epochs, eta_min=0
         )
