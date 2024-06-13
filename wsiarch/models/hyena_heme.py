@@ -30,8 +30,8 @@ from torch.utils.data import WeightedRandomSampler
 ####### DEFINE HYPERPARAMETERS AND DATA DIRECTORIES ########################
 ############################################################################
 
-num_epochs = 50
-default_config = {"lr": 0.000005}  # 1.462801279401232e-06}
+num_epochs = 500
+default_config = {"lr": 0.00005}  # 1.462801279401232e-06}
 data_dir = "/media/hdd1/neo/pooled_deepheme_data"
 num_gpus = 3
 num_workers = 20
