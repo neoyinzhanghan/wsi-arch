@@ -13,6 +13,96 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from pytorch_lightning.loggers import TensorBoardLogger
 
 
+class HyenaModel(nn.Module):
+    def __init__(
+        self,
+        d_model,
+        num_classes,
+        width_max,
+        height_max,
+        order=2,
+        filter_order=64,
+        dropout=0.0,
+        filter_dropout=0.0,
+    ):
+        super(HyenaModel, self).__init__()
+
+        self.d_model = d_model
+        self.width_max = width_max
+        self.height_max = height_max
+        self.num_classes = num_classes
+        self.order = order
+        self.filter_order = filter_order
+        self.dropout = dropout
+        self.filter_dropout = filter_dropout
+
+        self.hyena_layer = HyenaOperator2D(
+            d_model=d_model,
+            width_max=width_max,
+            height_max=height_max,
+            order=order,
+            filter_order=filter_order,
+            dropout=dropout,
+            filter_dropout=filter_dropout,
+        )
+
+        self.maxpool = nn.AdaptiveMaxPool2d((1, 1))
+
+        self.linear1 = nn.Linear(d_model, 1024)
+        self.relu1 = nn.ReLU()
+
+        self.linear2 = nn.Linear(1024, 512)
+        self.relu2 = nn.ReLU()
+
+        self.linear3 = nn.Linear(512, 256)
+        self.relu3 = nn.ReLU()
+
+        self.linear4 = nn.Linear(256, 128)
+        self.relu4 = nn.ReLU()
+
+        self.linear5 = nn.Linear(128, num_classes)
+
+        self.loss_fn = nn.CrossEntropyLoss()
+
+        self.train_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
+        self.val_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
+        self.test_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
+
+        self.train_f1 = F1Score(num_classes=num_classes, task="multiclass")
+        self.val_f1 = F1Score(num_classes=num_classes, task="multiclass")
+        self.test_f1 = F1Score(num_classes=num_classes, task="multiclass")
+
+        self.train_auroc = AUROC(num_classes=num_classes, task="multiclass")
+        self.val_auroc = AUROC(num_classes=num_classes, task="multiclass")
+        self.test_auroc = AUROC(num_classes=num_classes, task="multiclass")
+
+    def forward(self, x):
+        height_x, width__x = x.shape[-2], x.shape[-1]
+        x = self.hyena_layer(x)
+
+        assert x.shape[-2] == self.height_max, f"{x.shape[-2]} != {self.height_max}"
+        assert x.shape[-1] == self.width_max, f"{x.shape[-1]} != {self.width_max}"
+        assert x.shape[1] == self.d_model, f"{x.shape[1]} != {self.d_model}"
+
+        x = self.maxpool(x)
+        x = torch.flatten(x, 1)
+
+        assert (
+            x.shape[1] == self.d_model and len(x.shape) == 2
+        ), f"Shape of x is {x.shape}, should be (batch_size, d_model)"
+
+        x = self.linear1(x)
+        x = self.relu1(x)
+        x = self.linear2(x)
+        x = self.relu2(x)
+        x = self.linear3(x)
+        x = self.relu3(x)
+        x = self.linear4(x)
+        x = self.relu4(x)
+        x = self.linear5(x)
+        return x
+
+
 class HyenaModelPL(pl.LightningModule):
     def __init__(
         self,
