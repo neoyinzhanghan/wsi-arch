@@ -1,4 +1,4 @@
 h5py
-torch
+torch >= 2.2
 torchvision
 tqdm
