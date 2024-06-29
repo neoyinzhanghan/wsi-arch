@@ -13,7 +13,6 @@ from wsiarch.data.dataloaders import (
     FeatureImageDataModule,
 )
 
-
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(self, d_model, num_heads, num_classes, use_flash_attention=True):
         super().__init__()
@@ -37,15 +36,12 @@ class MultiHeadAttentionClassifier(nn.Module):
         y_pos = torch.arange(height).unsqueeze(1).float()
         x_pos = torch.arange(width).unsqueeze(0).float()
 
-        div_term = torch.exp(
-            torch.arange(0, self.d_model, 2).float()
-            * -(math.log(10000.0) / self.d_model)
-        )
+        div_term = torch.exp(torch.arange(0, self.d_model, 2).float() * -(math.log(10000.0) / self.d_model))
 
-        pos_encoding[:, :, 0::2] = torch.sin(y_pos * div_term)
-        pos_encoding[:, :, 1::2] = torch.cos(y_pos * div_term)
-        pos_encoding[:, :, 0::2] += torch.sin(x_pos * div_term)
-        pos_encoding[:, :, 1::2] += torch.cos(x_pos * div_term)
+        pos_encoding[:, :, 0::2] = torch.sin(y_pos * div_term).unsqueeze(1).expand(height, width, -1)
+        pos_encoding[:, :, 1::2] = torch.cos(y_pos * div_term).unsqueeze(1).expand(height, width, -1)
+        pos_encoding[:, :, 0::2] += torch.sin(x_pos * div_term).unsqueeze(0).expand(height, width, -1)
+        pos_encoding[:, :, 1::2] += torch.cos(x_pos * div_term).unsqueeze(0).expand(height, width, -1)
 
         return pos_encoding
 
@@ -54,58 +50,33 @@ class MultiHeadAttentionClassifier(nn.Module):
 
         x = x.permute(0, 2, 3, 1).view(batch_size, height * width, d_model)
         pos_encoding = self.get_positional_encoding(height, width).to(x.device)
-        x = x + pos_encoding.view(1, height * width, d_model)
+        x = x + pos_encoding.view(height * width, d_model)
 
         class_tokens = self.class_token.expand(batch_size, -1, -1)
         x = torch.cat([class_tokens, x], dim=1)
 
-        q = (
-            self.q_proj(x)
-            .view(batch_size, -1, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-        )
-        k = (
-            self.k_proj(x)
-            .view(batch_size, -1, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-        )
-        v = (
-            self.v_proj(x)
-            .view(batch_size, -1, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-        )
+        q = self.q_proj(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        k = self.k_proj(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
 
         if self.use_flash_attention:
             attn_output = F.scaled_dot_product_attention(q, k, v, is_causal=False)
         else:
-            attn_output = torch.matmul(
-                F.softmax(
-                    torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim),
-                    dim=-1,
-                ),
-                v,
-            )
+            attn_output = torch.matmul(F.softmax(torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim), dim=-1), v)
 
-        attn_output = (
-            attn_output.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
-        )
+        attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
         output = self.out_proj(attn_output)
 
         class_token_output = output[:, 0]
         logits = self.classifier(class_token_output)
         return logits
 
-
 class MultiHeadAttentionClassifierPL(pl.LightningModule):
-    def __init__(
-        self, d_model, num_heads, num_classes, use_flash_attention=True, num_epochs=10
-    ):
+    def __init__(self, d_model, num_heads, num_classes, use_flash_attention=True, num_epochs=10):
         super().__init__()
         self.save_hyperparameters()
 
-        self.model = MultiHeadAttentionClassifier(
-            d_model, num_heads, num_classes, use_flash_attention
-        )
+        self.model = MultiHeadAttentionClassifier(d_model, num_heads, num_classes, use_flash_attention)
 
         self.train_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
         self.val_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
@@ -159,11 +130,8 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=0.001)
-        scheduler = CosineAnnealingLR(
-            optimizer, T_max=self.hparams.num_epochs, eta_min=0
-        )
+        scheduler = CosineAnnealingLR(optimizer, T_max=self.hparams.num_epochs, eta_min=0)
         return [optimizer], [scheduler]
-
 
 def train_model(data_dir, num_gpus=3, num_epochs=10):
     data_module = FeatureImageDataModule(
@@ -193,7 +161,6 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
     )
     trainer.fit(model, data_module)
     trainer.test(model, data_module.test_dataloader())
-
 
 if __name__ == "__main__":
     data_dir = "/media/hdd1/neo/LUAD-LUSC_FI"
