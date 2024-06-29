@@ -35,88 +35,44 @@ class MultiHeadAttentionClassifier(nn.Module):
     def get_positional_encoding(self, height, width):
         # Initialize a positional encoding tensor with zeros, shape (height, width, d_model)
         pos_encoding = torch.zeros(height, width, self.d_model)
-        assert pos_encoding.shape == (
-            height,
-            width,
-            self.d_model,
-        ), f"pos_encoding shape mismatch: {pos_encoding.shape}"
+        assert pos_encoding.shape == (height, width, self.d_model), f"pos_encoding shape mismatch: {pos_encoding.shape}"
 
         # Generate a range of positions for height and width
-        y_pos = (
-            torch.arange(height).unsqueeze(1).float()
-        )  # Unsqueeze to make it a column vector
+        y_pos = torch.arange(height).unsqueeze(1).float()  # Unsqueeze to make it a column vector
         assert y_pos.shape == (height, 1), f"y_pos shape mismatch: {y_pos.shape}"
-
-        x_pos = (
-            torch.arange(width).unsqueeze(0).float()
-        )  # Unsqueeze to make it a row vector
+        
+        x_pos = torch.arange(width).unsqueeze(0).float()  # Unsqueeze to make it a row vector
         assert x_pos.shape == (1, width), f"x_pos shape mismatch: {x_pos.shape}"
 
         # Calculate the divisor term for the positional encoding formula
-        div_term = torch.exp(
-            torch.arange(0, self.d_model, 2).float()
-            * -(math.log(10000.0) / self.d_model)
-        )
-        assert div_term.shape == (
-            self.d_model // 2,
-        ), f"div_term shape mismatch: {div_term.shape}"
+        div_term = torch.exp(torch.arange(0, self.d_model, 2).float() * -(math.log(10000.0) / self.d_model))
+        assert div_term.shape == (self.d_model // 2,), f"div_term shape mismatch: {div_term.shape}"
 
-        # Apply the sine function to the y positions and expand to match (height, width, d_model // 2)
-        pos_encoding[:, :, 0::2] = (
-            torch.sin(y_pos * div_term)
-            .unsqueeze(1)
-            .expand(height, width, self.d_model // 2)
-        )
-        assert pos_encoding[:, :, 0::2].shape == (
-            height,
-            width,
-            self.d_model // 2,
-        ), f"pos_encoding (sine y) shape mismatch: {pos_encoding[:, :, 0::2].shape}"
+        # Apply the sine function to the y positions and expand to match (height, 1, d_model // 2)
+        pos_encoding_y_sin = torch.sin(y_pos * div_term).unsqueeze(1).expand(height, width, self.d_model // 2)
+        assert pos_encoding_y_sin.shape == (height, width, self.d_model // 2), f"pos_encoding_y_sin shape mismatch: {pos_encoding_y_sin.shape}"
 
-        # Apply the cosine function to the y positions and expand to match (height, width, d_model // 2)
-        pos_encoding[:, :, 1::2] = (
-            torch.cos(y_pos * div_term)
-            .unsqueeze(1)
-            .expand(height, width, self.d_model // 2)
-        )
-        assert pos_encoding[:, :, 1::2].shape == (
-            height,
-            width,
-            self.d_model // 2,
-        ), f"pos_encoding (cosine y) shape mismatch: {pos_encoding[:, :, 1::2].shape}"
+        # Apply the cosine function to the y positions and expand to match (height, 1, d_model // 2)
+        pos_encoding_y_cos = torch.cos(y_pos * div_term).unsqueeze(1).expand(height, width, self.d_model // 2)
+        assert pos_encoding_y_cos.shape == (height, width, self.d_model // 2), f"pos_encoding_y_cos shape mismatch: {pos_encoding_y_cos.shape}"
 
-        # Add the sine function applied to the x positions
-        pos_encoding[:, :, 0::2] += (
-            torch.sin(x_pos * div_term)
-            .unsqueeze(0)
-            .expand(height, width, self.d_model // 2)
-        )
-        assert pos_encoding[:, :, 0::2].shape == (
-            height,
-            width,
-            self.d_model // 2,
-        ), f"pos_encoding (sine x added) shape mismatch: {pos_encoding[:, :, 0::2].shape}"
+        # Apply the sine function to the x positions and expand to match (1, width, d_model // 2)
+        pos_encoding_x_sin = torch.sin(x_pos * div_term).unsqueeze(0).expand(height, width, self.d_model // 2)
+        assert pos_encoding_x_sin.shape == (height, width, self.d_model // 2), f"pos_encoding_x_sin shape mismatch: {pos_encoding_x_sin.shape}"
 
-        # Add the cosine function applied to the x positions
-        pos_encoding[:, :, 1::2] += (
-            torch.cos(x_pos * div_term)
-            .unsqueeze(0)
-            .expand(height, width, self.d_model // 2)
-        )
-        assert pos_encoding[:, :, 1::2].shape == (
-            height,
-            width,
-            self.d_model // 2,
-        ), f"pos_encoding (cosine x added) shape mismatch: {pos_encoding[:, :, 1::2].shape}"
+        # Apply the cosine function to the x positions and expand to match (1, width, d_model // 2)
+        pos_encoding_x_cos = torch.cos(x_pos * div_term).unsqueeze(0).expand(height, width, self.d_model // 2)
+        assert pos_encoding_x_cos.shape == (height, width, self.d_model // 2), f"pos_encoding_x_cos shape mismatch: {pos_encoding_x_cos.shape}"
 
-        # check that the pos_encoding tensor has the correct shape
-        assert pos_encoding.shape == (
-            height,
-            width,
-            self.d_model,
-        ), f"pos_encoding shape mismatch: {pos_encoding.shape}"
+        # Combine the positional encodings
+        pos_encoding[:, :, 0::2] = pos_encoding_y_sin + pos_encoding_x_sin
+        pos_encoding[:, :, 1::2] = pos_encoding_y_cos + pos_encoding_x_cos
+
+        assert pos_encoding.shape == (height, width, self.d_model), f"pos_encoding shape mismatch: {pos_encoding.shape}"
+
 
         return pos_encoding
+
 
     def forward(self, x):
         batch_size, d_model, height, width = x.shape
