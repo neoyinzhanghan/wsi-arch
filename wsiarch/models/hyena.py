@@ -13,6 +13,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from pytorch_lightning.loggers import TensorBoardLogger
 
 
+# Define the HyenaModel
 class HyenaModel(nn.Module):
     def __init__(
         self,
@@ -26,7 +27,7 @@ class HyenaModel(nn.Module):
         filter_dropout=0.0,
     ):
         super(HyenaModel, self).__init__()
-
+        
         self.d_model = d_model
         self.width_max = width_max
         self.height_max = height_max
@@ -87,9 +88,7 @@ class HyenaModel(nn.Module):
         x = self.maxpool(x)
         x = torch.flatten(x, 1)
 
-        assert (
-            x.shape[1] == self.d_model and len(x.shape) == 2
-        ), f"Shape of x is {x.shape}, should be (batch_size, d_model)"
+        assert x.shape[1] == self.d_model and len(x.shape) == 2, f"Shape of x is {x.shape}, should be (batch_size, d_model)"
 
         x = self.linear1(x)
         x = self.relu1(x)
@@ -101,6 +100,33 @@ class HyenaModel(nn.Module):
         x = self.relu4(x)
         x = self.linear5(x)
         return x
+
+    def compute_metrics(self, outputs, targets):
+        accuracy = self.train_accuracy(outputs, targets)
+        f1 = self.train_f1(outputs, targets)
+        auroc = self.train_auroc(outputs, targets)
+        return accuracy, f1, auroc
+
+    def training_step(self, batch):
+        x, y = batch
+        outputs = self.forward(x)
+        loss = self.loss_fn(outputs, y)
+        accuracy, f1, auroc = self.compute_metrics(outputs, y)
+        return loss, accuracy, f1, auroc
+
+    def validation_step(self, batch):
+        x, y = batch
+        outputs = self.forward(x)
+        loss = self.loss_fn(outputs, y)
+        accuracy, f1, auroc = self.compute_metrics(outputs, y)
+        return loss, accuracy, f1, auroc
+
+    def test_step(self, batch):
+        x, y = batch
+        outputs = self.forward(x)
+        loss = self.loss_fn(outputs, y)
+        accuracy, f1, auroc = self.compute_metrics(outputs, y)
+        return loss, accuracy, f1, auroc
 
 
 class HyenaModelPL(pl.LightningModule):
