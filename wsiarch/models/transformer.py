@@ -13,6 +13,7 @@ from wsiarch.data.dataloaders import (
     FeatureImageDataModule,
 )
 
+
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(self, d_model, num_heads, num_classes, use_flash_attention=True):
         super().__init__()
@@ -32,16 +33,88 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.classifier = nn.Linear(d_model, num_classes)
 
     def get_positional_encoding(self, height, width):
+        # Initialize a positional encoding tensor with zeros, shape (height, width, d_model)
         pos_encoding = torch.zeros(height, width, self.d_model)
-        y_pos = torch.arange(height).unsqueeze(1).float()
-        x_pos = torch.arange(width).unsqueeze(0).float()
+        assert pos_encoding.shape == (
+            height,
+            width,
+            self.d_model,
+        ), f"pos_encoding shape mismatch: {pos_encoding.shape}"
 
-        div_term = torch.exp(torch.arange(0, self.d_model, 2).float() * -(math.log(10000.0) / self.d_model))
+        # Generate a range of positions for height and width
+        y_pos = (
+            torch.arange(height).unsqueeze(1).float()
+        )  # Unsqueeze to make it a column vector
+        assert y_pos.shape == (height, 1), f"y_pos shape mismatch: {y_pos.shape}"
 
-        pos_encoding[:, :, 0::2] = torch.sin(y_pos * div_term).unsqueeze(1).expand(height, width, -1)
-        pos_encoding[:, :, 1::2] = torch.cos(y_pos * div_term).unsqueeze(1).expand(height, width, -1)
-        pos_encoding[:, :, 0::2] += torch.sin(x_pos * div_term).unsqueeze(0).expand(height, width, -1)
-        pos_encoding[:, :, 1::2] += torch.cos(x_pos * div_term).unsqueeze(0).expand(height, width, -1)
+        x_pos = (
+            torch.arange(width).unsqueeze(0).float()
+        )  # Unsqueeze to make it a row vector
+        assert x_pos.shape == (1, width), f"x_pos shape mismatch: {x_pos.shape}"
+
+        # Calculate the divisor term for the positional encoding formula
+        div_term = torch.exp(
+            torch.arange(0, self.d_model, 2).float()
+            * -(math.log(10000.0) / self.d_model)
+        )
+        assert div_term.shape == (
+            self.d_model // 2,
+        ), f"div_term shape mismatch: {div_term.shape}"
+
+        # Apply the sine function to the y positions and expand to match (height, width, d_model // 2)
+        pos_encoding[:, :, 0::2] = (
+            torch.sin(y_pos * div_term)
+            .unsqueeze(1)
+            .expand(height, width, self.d_model // 2)
+        )
+        assert pos_encoding[:, :, 0::2].shape == (
+            height,
+            width,
+            self.d_model // 2,
+        ), f"pos_encoding (sine y) shape mismatch: {pos_encoding[:, :, 0::2].shape}"
+
+        # Apply the cosine function to the y positions and expand to match (height, width, d_model // 2)
+        pos_encoding[:, :, 1::2] = (
+            torch.cos(y_pos * div_term)
+            .unsqueeze(1)
+            .expand(height, width, self.d_model // 2)
+        )
+        assert pos_encoding[:, :, 1::2].shape == (
+            height,
+            width,
+            self.d_model // 2,
+        ), f"pos_encoding (cosine y) shape mismatch: {pos_encoding[:, :, 1::2].shape}"
+
+        # Add the sine function applied to the x positions
+        pos_encoding[:, :, 0::2] += (
+            torch.sin(x_pos * div_term)
+            .unsqueeze(0)
+            .expand(height, width, self.d_model // 2)
+        )
+        assert pos_encoding[:, :, 0::2].shape == (
+            height,
+            width,
+            self.d_model // 2,
+        ), f"pos_encoding (sine x added) shape mismatch: {pos_encoding[:, :, 0::2].shape}"
+
+        # Add the cosine function applied to the x positions
+        pos_encoding[:, :, 1::2] += (
+            torch.cos(x_pos * div_term)
+            .unsqueeze(0)
+            .expand(height, width, self.d_model // 2)
+        )
+        assert pos_encoding[:, :, 1::2].shape == (
+            height,
+            width,
+            self.d_model // 2,
+        ), f"pos_encoding (cosine x added) shape mismatch: {pos_encoding[:, :, 1::2].shape}"
+
+        # check that the pos_encoding tensor has the correct shape
+        assert pos_encoding.shape == (
+            height,
+            width,
+            self.d_model,
+        ), f"pos_encoding shape mismatch: {pos_encoding.shape}"
 
         return pos_encoding
 
@@ -55,28 +128,53 @@ class MultiHeadAttentionClassifier(nn.Module):
         class_tokens = self.class_token.expand(batch_size, -1, -1)
         x = torch.cat([class_tokens, x], dim=1)
 
-        q = self.q_proj(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
-        k = self.k_proj(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
-        v = self.v_proj(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        q = (
+            self.q_proj(x)
+            .view(batch_size, -1, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
+        k = (
+            self.k_proj(x)
+            .view(batch_size, -1, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
+        v = (
+            self.v_proj(x)
+            .view(batch_size, -1, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
 
         if self.use_flash_attention:
             attn_output = F.scaled_dot_product_attention(q, k, v, is_causal=False)
         else:
-            attn_output = torch.matmul(F.softmax(torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim), dim=-1), v)
+            attn_output = torch.matmul(
+                F.softmax(
+                    torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim),
+                    dim=-1,
+                ),
+                v,
+            )
 
-        attn_output = attn_output.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
+        attn_output = (
+            attn_output.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
+        )
         output = self.out_proj(attn_output)
 
         class_token_output = output[:, 0]
         logits = self.classifier(class_token_output)
         return logits
 
+
 class MultiHeadAttentionClassifierPL(pl.LightningModule):
-    def __init__(self, d_model, num_heads, num_classes, use_flash_attention=True, num_epochs=10):
+    def __init__(
+        self, d_model, num_heads, num_classes, use_flash_attention=True, num_epochs=10
+    ):
         super().__init__()
         self.save_hyperparameters()
 
-        self.model = MultiHeadAttentionClassifier(d_model, num_heads, num_classes, use_flash_attention)
+        self.model = MultiHeadAttentionClassifier(
+            d_model, num_heads, num_classes, use_flash_attention
+        )
 
         self.train_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
         self.val_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
@@ -130,8 +228,11 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=0.001)
-        scheduler = CosineAnnealingLR(optimizer, T_max=self.hparams.num_epochs, eta_min=0)
+        scheduler = CosineAnnealingLR(
+            optimizer, T_max=self.hparams.num_epochs, eta_min=0
+        )
         return [optimizer], [scheduler]
+
 
 def train_model(data_dir, num_gpus=3, num_epochs=10):
     data_module = FeatureImageDataModule(
@@ -161,6 +262,7 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
     )
     trainer.fit(model, data_module)
     trainer.test(model, data_module.test_dataloader())
+
 
 if __name__ == "__main__":
     data_dir = "/media/hdd1/neo/LUAD-LUSC_FI"
