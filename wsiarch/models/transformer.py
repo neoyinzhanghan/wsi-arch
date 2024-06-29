@@ -15,7 +15,7 @@ from wsiarch.data.dataloaders import (
 
 
 class MultiHeadAttentionClassifier(nn.Module):
-    def __init__(self, d_model, num_heads, num_classes, use_flash_attention=False):
+    def __init__(self, d_model, num_heads, num_classes, use_flash_attention=True):
         super().__init__()
         self.d_model = d_model
         self.num_heads = num_heads
@@ -171,7 +171,7 @@ class MultiHeadAttentionClassifier(nn.Module):
 
 class MultiHeadAttentionClassifierPL(pl.LightningModule):
     def __init__(
-        self, d_model, num_heads, num_classes, use_flash_attention=False, num_epochs=10
+        self, d_model, num_heads, num_classes, use_flash_attention=True, num_epochs=10
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -252,7 +252,7 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
         d_model=2048,
         num_heads=8,
         num_classes=2,
-        use_flash_attention=False,
+        use_flash_attention=True,
         num_epochs=num_epochs,
     )
 
