@@ -86,6 +86,8 @@ class MultiHeadAttentionClassifier(nn.Module):
         ), f"pos_encoding_y_cos shape mismatch: {pos_encoding_y_cos.shape}"
 
         # Apply the sine function to the x positions and expand to match (1, width, d_model // 2)
+        print("Shape of x_pos: ", x_pos.shape)
+        print("Shape of div_term: ", div_term.shape)
         output = x_pos * div_term
         output = torch.sin(output)
         output = output.unsqueeze(0)
