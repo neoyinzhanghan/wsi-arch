@@ -4,10 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import pytorch_lightning as pl
+from torchmetrics import Accuracy, F1Score, AUROC
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from pytorch_lightning.loggers import TensorBoardLogger
-from torchmetrics import Accuracy, F1Score, AUROC
-from wsiarch.models.components.hyena import HyenaOperator2D
 from wsiarch.data.dataloaders import (
     FeatureImageDataset,
     create_data_loaders,
@@ -15,69 +14,8 @@ from wsiarch.data.dataloaders import (
 )
 
 
-# OptimModule definition
-class OptimModule(nn.Module):
-    def register(self, name, tensor, lr=None):
-        if lr is not None:
-            param = nn.Parameter(tensor)
-            self.register_parameter(name, param)
-            setattr(self, name + "_lr", lr)
-        else:
-            self.register_buffer(name, tensor)
-
-
-# PositionalEmbedding2D definition
-class PositionalEmbedding2D(OptimModule):
-    def __init__(
-        self, emb_dim: int, height: int, width: int, lr_pos_emb: float = 1e-5, **kwargs
-    ):
-        super().__init__()
-
-        self.width = width
-        self.height = height
-
-        t_width = torch.linspace(0, 1, self.width)[None, :, None]
-        t_height = torch.linspace(0, 1, self.height)[None, :, None]
-
-        assert (
-            emb_dim % 2 == 0 and emb_dim >= 6
-        ), "emb_dim must be even and greater or equal to 6 (time_x, sine_x and cosine_x, time_y, sine_y, cosine_y)"
-
-        if emb_dim > 1:
-            bands = (emb_dim - 2) // 4
-
-        t_rescaled_width = torch.linspace(0, width - 1, width)[None, :, None]
-        t_rescaled_height = torch.linspace(0, height - 1, height)[None, :, None]
-
-        w_width = 2 * math.pi * t_rescaled_width / width
-        w_height = 2 * math.pi * t_rescaled_height / height
-
-        f = torch.linspace(1e-4, bands - 1, bands)[None, None]
-        z_width = torch.exp(-1j * f * w_width)
-        z_height = torch.exp(-1j * f * w_height)
-
-        z_width = torch.cat([t_width, z_width.real, z_width.imag], dim=-1)
-        z_height = torch.cat([t_height, z_height.real, z_height.imag], dim=-1)
-
-        self.register("z_width", z_width, lr=lr_pos_emb)
-        self.register("z_height", z_height, lr=lr_pos_emb)
-        self.register("t_width", t_width, lr=0.0)
-        self.register("t_height", t_height, lr=0.0)
-
-    def forward(self, x, y):
-        return (
-            self.z_height[:, :x],
-            self.z_width[:, :y],
-            self.t_height[:, :x],
-            self.t_width[:, :y],
-        )
-
-
-# MultiHeadAttentionClassifier definition
 class MultiHeadAttentionClassifier(nn.Module):
-    def __init__(
-        self, d_model, num_heads, num_classes, height, width, use_flash_attention=True
-    ):
+    def __init__(self, d_model, num_heads, num_classes, use_flash_attention=True):
         super().__init__()
         self.d_model = d_model
         self.num_heads = num_heads
@@ -94,31 +32,33 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.class_token = nn.Parameter(torch.randn(1, 1, d_model))
         self.classifier = nn.Linear(d_model, num_classes)
 
-        self.pos_embedding = PositionalEmbedding2D(d_model, height, width)
+    def get_positional_encoding(self, height, width):
+        pos_encoding = torch.zeros(height, width, self.d_model)
+        y_pos = torch.arange(height).unsqueeze(1).float()
+        x_pos = torch.arange(width).unsqueeze(0).float()
+
+        div_term = torch.exp(
+            torch.arange(0, self.d_model, 2).float()
+            * -(math.log(10000.0) / self.d_model)
+        )
+
+        pos_encoding[:, :, 0::2] = torch.sin(y_pos * div_term)
+        pos_encoding[:, :, 1::2] = torch.cos(y_pos * div_term)
+        pos_encoding[:, :, 0::2] += torch.sin(x_pos * div_term)
+        pos_encoding[:, :, 1::2] += torch.cos(x_pos * div_term)
+
+        return pos_encoding
 
     def forward(self, x):
         batch_size, d_model, height, width = x.shape
 
-        # Reshape input
         x = x.permute(0, 2, 3, 1).view(batch_size, height * width, d_model)
+        pos_encoding = self.get_positional_encoding(height, width).to(x.device)
+        x = x + pos_encoding.view(1, height * width, d_model)
 
-        # Add positional encoding
-        z_height, z_width, _, _ = self.pos_embedding(height, width)
-        pos_encoding = torch.cat(
-            [
-                z_height.expand(width, -1, -1).transpose(0, 1),
-                z_width.expand(height, -1, -1),
-            ],
-            dim=-1,
-        )
-        pos_encoding = pos_encoding.view(height * width, -1).unsqueeze(0)
-        x = x + pos_encoding
-
-        # Add class token
         class_tokens = self.class_token.expand(batch_size, -1, -1)
         x = torch.cat([class_tokens, x], dim=1)
 
-        # Multi-head attention
         q = (
             self.q_proj(x)
             .view(batch_size, -1, self.num_heads, self.head_dim)
@@ -151,36 +91,20 @@ class MultiHeadAttentionClassifier(nn.Module):
         )
         output = self.out_proj(attn_output)
 
-        # Extract class token and classify
         class_token_output = output[:, 0]
         logits = self.classifier(class_token_output)
-        probs = F.softmax(logits, dim=-1)
-
-        return probs
+        return logits
 
 
-# PyTorch Lightning module
 class MultiHeadAttentionClassifierPL(pl.LightningModule):
     def __init__(
-        self,
-        d_model,
-        num_heads,
-        num_classes,
-        height,
-        width,
-        use_flash_attention=True,
-        num_epochs=10,
+        self, d_model, num_heads, num_classes, use_flash_attention=True, num_epochs=10
     ):
         super().__init__()
         self.save_hyperparameters()
 
         self.model = MultiHeadAttentionClassifier(
-            d_model=d_model,
-            num_heads=num_heads,
-            num_classes=num_classes,
-            height=height,
-            width=width,
-            use_flash_attention=use_flash_attention,
+            d_model, num_heads, num_classes, use_flash_attention
         )
 
         self.train_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
@@ -228,6 +152,11 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         self.log("test_f1", self.test_f1(logits, y))
         self.log("test_auroc", self.test_auroc(logits, y))
 
+    def on_train_epoch_end(self):
+        scheduler = self.lr_schedulers()
+        current_lr = scheduler.get_last_lr()[0]
+        self.log("lr", current_lr)
+
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=0.001)
         scheduler = CosineAnnealingLR(
@@ -236,7 +165,6 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-# Main training loop
 def train_model(data_dir, num_gpus=3, num_epochs=10):
     data_module = FeatureImageDataModule(
         root_dir=data_dir,
@@ -248,24 +176,20 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
     )
 
     model = MultiHeadAttentionClassifierPL(
-        d_model=256,
+        d_model=2048,
         num_heads=8,
-        num_classes=10,
-        height=24,
-        width=24,
+        num_classes=2,
         use_flash_attention=True,
         num_epochs=num_epochs,
     )
 
-    # Logger
-    logger = TensorBoardLogger("lightning_logs", name="attention")
+    logger = TensorBoardLogger("lightning_logs", name="multihead_attention")
 
-    # Trainer configuration for distributed training
     trainer = pl.Trainer(
         max_epochs=num_epochs,
         logger=logger,
         devices=num_gpus,
-        accelerator="gpu",  # 'ddp' for DistributedDataParallel
+        accelerator="gpu",
     )
     trainer.fit(model, data_module)
     trainer.test(model, data_module.test_dataloader())
