@@ -48,9 +48,9 @@ class MultiHeadAttentionClassifier(nn.Module):
         assert y_pos.shape == (height, 1), f"y_pos shape mismatch: {y_pos.shape}"
 
         x_pos = (
-            torch.arange(width).unsqueeze(0).float()
+            torch.arange(width).unsqueeze(1).float()
         )  # Unsqueeze to make it a row vector
-        assert x_pos.shape == (1, width), f"x_pos shape mismatch: {x_pos.shape}"
+        assert x_pos.shape == (width, 1), f"x_pos shape mismatch: {x_pos.shape}"
 
         # Calculate the divisor term for the positional encoding formula
         div_term = torch.exp(
@@ -87,20 +87,11 @@ class MultiHeadAttentionClassifier(nn.Module):
 
         # Apply the sine function to the x positions and expand to match (1, width, d_model // 2)
 
-        # first swap x_pos so it has shape (width, 1)
-        x_pos_swapped = x_pos.t()
-        output = x_pos_swapped * div_term
-
-        print("Shape of output is", output.shape)
-
-        import sys
-
-        sys.exit()
-        output = torch.sin(output)
-        output = output.unsqueeze(0)
-        output = output.expand(height, width, self.d_model // 2)
-        pos_encoding_x_sin = output
-        # pos_encoding_x_sin = torch.sin(x_pos * div_term).unsqueeze(0).expand(height, width, self.d_model // 2)
+        pos_encoding_x_sin = (
+            torch.sin(x_pos * div_term)
+            .unsqueeze(0)
+            .expand(height, width, self.d_model // 2)
+        )
         assert pos_encoding_x_sin.shape == (
             height,
             width,
