@@ -120,6 +120,8 @@ if __name__ == "__main__":
     #     save_dir="/media/hdd1/neo/LUAD-LUSC_FI",
     # )
 
+    print("Processing LUAD-LUSC_UNI...")
+
     folder_as_class(
         folders=[
             "/media/hdd1/neo/TCGA-LUSC_UNI",
@@ -128,6 +130,8 @@ if __name__ == "__main__":
         wsi_dirs=["/media/ssd1/TCGA_WSI/TCGA-LUAD", "/media/ssd1/TCGA_WSI/TCGA-LUSC"],
         save_dir="/media/hdd1/neo/LUAD-LUSC_FI_UNI",
     )
+
+    print("Processing LUAD-LUSC_ResNet...")
 
     folder_as_class(
         folders=[
