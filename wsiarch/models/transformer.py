@@ -245,7 +245,7 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
         width_max=230,
         height_max=445,
         batch_size=1,
-        num_workers=18,
+        num_workers=24,
     )
 
     model = MultiHeadAttentionClassifierPL(
@@ -269,5 +269,5 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
 
 
 if __name__ == "__main__":
-    data_dir = "/media/hdd1/neo/LUAD-LUSC_FI"
+    data_dir = "/media/hdd1/neo/LUAD-LUSC_FI_ResNet_lite"
     train_model(data_dir=data_dir)
