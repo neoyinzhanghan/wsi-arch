@@ -249,7 +249,7 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
     )
 
     model = MultiHeadAttentionClassifierPL(
-        d_model=2048,
+        d_model=1024,
         num_heads=8,
         num_classes=2,
         use_flash_attention=True,
