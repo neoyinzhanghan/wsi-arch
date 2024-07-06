@@ -231,7 +231,7 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         self.log("lr", current_lr)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=0.001)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=0.0001)
         scheduler = CosineAnnealingLR(
             optimizer, T_max=self.hparams.num_epochs, eta_min=0
         )
@@ -269,5 +269,5 @@ def train_model(data_dir, num_gpus=3, num_epochs=10):
 
 
 if __name__ == "__main__":
-    data_dir = "/media/hdd1/neo/LUAD-LUSC_FI_ResNet_lite"
+    data_dir = "/media/hdd1/neo/LUAD-LUSC_FI_ResNet"
     train_model(data_dir=data_dir)
