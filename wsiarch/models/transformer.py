@@ -16,7 +16,7 @@ from wsiarch.data.dataloaders import (
 
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(
-        self, d_model=2048, num_heads=8, num_classes=2, use_flash_attention=True
+        self, d_model=2048, num_heads=8, num_classes=2, height_max=445, width_max=230, use_flash_attention=True
     ):
         super().__init__()
         self.d_model = d_model
@@ -24,6 +24,8 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.head_dim = d_model // num_heads
         self.use_flash_attention = use_flash_attention
         self.num_classes = num_classes
+        self.height_max = height_max
+        self.width_max = width_max
 
         assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
 
@@ -35,8 +37,10 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.class_token = nn.Parameter(torch.randn(1, 1, d_model))
         self.classifier = nn.Linear(d_model, num_classes)
 
-    def get_positional_encoding(self, height, width):
+    def get_positional_encoding(self):
         # Initialize a positional encoding tensor with zeros, shape (height, width, d_model)
+        height = self.height_max
+        width = self.width_max
         pos_encoding = torch.zeros(height, width, self.d_model)
         assert pos_encoding.shape == (
             height,
