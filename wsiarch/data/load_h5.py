@@ -26,8 +26,8 @@ def create_feature_image(pix_coord, features):
     pix_coord = np.array(pix_coord)
 
     # Determine the dimensions of the image
-    height = pix_coord[:, 0].max() + 1  # Assuming first column is the y-coordinate
-    width = pix_coord[:, 1].max() + 1  # Assuming second column is the x-coordinate
+    height = pix_coord[:, 0].max() + 1  # Assuming first column is the y-coordinate, the +1 here is to account for 0-based indexing
+    width = pix_coord[:, 1].max() + 1  # Assuming second column is the x-coordinate, the +1 here is to account for 0-based indexing
 
     # Initialize the tensor for the image
     image = torch.zeros((int(height), int(width), feature_dim), dtype=torch.float32)

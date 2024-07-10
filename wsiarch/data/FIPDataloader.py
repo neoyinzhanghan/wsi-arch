@@ -23,30 +23,6 @@ def find_minimum_separation(coords):
     return min_distance
 
 
-def random_up_padding(feature_image, height_max, width_max):
-    # The feature image should have shape (depth, height, width) where height <= height_max and width <= width_max
-    depth, height, width = feature_image.shape
-    assert (
-        width <= width_max and height <= height_max
-    ), f"The width {width} and height {height} should be less than or equal to width_max {width_max} and height_max {height_max} respectively."
-
-    # Create a tensor of zeros with shape (depth, height_max, width_max)
-    padded_feature_image = np.zeros((depth, height_max, width_max))
-
-    # Randomly find the top left corner to place the feature image
-    top_left_corner_y = np.random.randint(0, height_max - height + 1)
-    top_left_corner_x = np.random.randint(0, width_max - width + 1)
-
-    # Place the feature image within the padded tensor
-    padded_feature_image[
-        :,
-        top_left_corner_y : top_left_corner_y + height,
-        top_left_corner_x : top_left_corner_x + width,
-    ] = feature_image
-
-    return padded_feature_image
-
-
 def random_up_padding_FIP(
     feature_image,
     coords,
@@ -118,7 +94,8 @@ def random_up_padding_FIP(
 
     return padded_feature_image, padded_search_view
 
-class FeatureImageDataset(Dataset):
+
+class FIPDataset(Dataset):
     def __init__(
         self, root_dir, metadata_file, split, width_max, height_max, transform=None
     ):
@@ -158,29 +135,38 @@ class FeatureImageDataset(Dataset):
 
         # get the "feature_image" dataset
         feature_image = h5_file["feature_image"][:]
+        coords = h5_file["coords"][:]
+        level_0_mpp = h5_file["level_0_mpp"][()]
+        search_view_mpp = h5_file["search_view_mpp"][()]
+        search_view = h5_file["search_view"][:]
+        h5_file.close()
 
         # randomly pad the feature image
-        feature_image = random_up_padding(
-            feature_image, width_max=self.width_max, height_max=self.height_max
+        feature_image = random_up_padding_FIP(
+            feature_image=feature_image,
+            coords=coords,
+            level_0_mpp=level_0_mpp,
+            search_view_mpp=search_view_mpp,
+            search_view=search_view,
+            height_max=self.height_max,
+            width_max=self.width_max,
         )
 
-        if self.transform:
-            sample = self.transform(feature_image)
-        else:
-            sample = torch.tensor(feature_image, dtype=torch.float32)
+        sample = torch.tensor(feature_image, dtype=torch.float32)
+        search_view = torch.tensor(search_view, dtype=torch.float32)
 
         # Get the class label
         class_label = self.metadata.iloc[idx]["class"]
         class_index = self.class_to_index[class_label]
 
-        return sample, class_index
+        return sample, search_view, class_index
 
 
 def create_data_loaders(
     root_dir, metadata_file, height_max, width_max, batch_size=32, num_workers=12
 ):
 
-    train_dataset = FeatureImageDataset(
+    train_dataset = FIPDataset(
         root_dir=root_dir,
         metadata_file=metadata_file,
         split="train",
@@ -188,7 +174,7 @@ def create_data_loaders(
         height_max=height_max,
     )
 
-    val_dataset = FeatureImageDataset(
+    val_dataset = FIPDataset(
         root_dir=root_dir,
         metadata_file=metadata_file,
         split="val",
@@ -196,7 +182,7 @@ def create_data_loaders(
         height_max=height_max,
     )
 
-    test_dataset = FeatureImageDataset(
+    test_dataset = FIPDataset(
         root_dir=root_dir,
         metadata_file=metadata_file,
         split="test",
@@ -218,7 +204,7 @@ def create_data_loaders(
     return train_loader, val_loader, test_loader
 
 
-class FeatureImageDataModule(pl.LightningDataModule):
+class FIPDataModule(pl.LightningDataModule):
     def __init__(
         self,
         root_dir,
