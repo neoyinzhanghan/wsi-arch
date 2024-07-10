@@ -16,7 +16,13 @@ from wsiarch.data.dataloaders import (
 
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(
-        self, d_model=2048, num_heads=8, num_classes=2, height_max=445, width_max=230, use_flash_attention=True
+        self,
+        d_model=2048,
+        num_heads=8,
+        num_classes=2,
+        height_max=445,
+        width_max=230,
+        use_flash_attention=True,
     ):
         super().__init__()
         self.d_model = d_model
@@ -129,6 +135,17 @@ class MultiHeadAttentionClassifier(nn.Module):
 
         return pos_encoding
 
+    def attn(self, q, k, v):
+        if self.use_flash_attention:
+            attn_output = F.scaled_dot_product_attention(q, k, v, is_causal=False)
+        else:
+            attn_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(
+                self.head_dim
+            )
+            attn_probs = F.softmax(attn_scores, dim=-1)
+            attn_output = torch.matmul(attn_probs, v)
+        return attn_output
+
     def forward(self, x):
         batch_size, d_model, height, width = x.shape
 
@@ -155,16 +172,7 @@ class MultiHeadAttentionClassifier(nn.Module):
             .transpose(1, 2)
         )
 
-        if self.use_flash_attention:
-            attn_output = F.scaled_dot_product_attention(q, k, v, is_causal=False)
-        else:
-            attn_output = torch.matmul(
-                F.softmax(
-                    torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim),
-                    dim=-1,
-                ),
-                v,
-            )
+        attn_output = self.attn(q, k, v)
 
         attn_output = (
             attn_output.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
