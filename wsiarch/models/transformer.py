@@ -15,7 +15,7 @@ from wsiarch.data.dataloaders import (
 
 
 class MultiHeadAttentionClassifier(nn.Module):
-    def __init__(self, d_model, num_heads, num_classes, use_flash_attention=True):
+    def __init__(self, d_model=2048, num_heads=8, num_classes=2, use_flash_attention=True):
         super().__init__()
         self.d_model = d_model
         self.num_heads = num_heads
