@@ -14,6 +14,24 @@ from wsiarch.data.dataloaders import (
 )
 
 
+class Attn(nn.Module):
+    def __init__(self, head_dim, use_flash_attention):
+        super(Attn, self).__init__()
+        self.head_dim = head_dim
+        self.use_flash_attention = use_flash_attention
+
+    def forward(self, q, k, v):
+        if self.use_flash_attention:
+            attn_output = F.scaled_dot_product_attention(q, k, v, is_causal=False)
+        else:
+            attn_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(
+                self.head_dim
+            )
+            attn_probs = F.softmax(attn_scores, dim=-1)
+            attn_output = torch.matmul(attn_probs, v)
+        return attn_output
+
+
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(
         self,
@@ -39,6 +57,10 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.k_proj = nn.Linear(d_model, d_model)
         self.v_proj = nn.Linear(d_model, d_model)
         self.out_proj = nn.Linear(d_model, d_model)
+
+        head_dim = d_model // num_heads
+
+        self.attn = Attn(head_dim=head_dim, use_flash_attention=use_flash_attention)
 
         self.class_token = nn.Parameter(torch.randn(1, 1, d_model))
         self.classifier = nn.Linear(d_model, num_classes)
@@ -135,16 +157,16 @@ class MultiHeadAttentionClassifier(nn.Module):
 
         return pos_encoding
 
-    def attn(self, q, k, v):
-        if self.use_flash_attention:
-            attn_output = F.scaled_dot_product_attention(q, k, v, is_causal=False)
-        else:
-            attn_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(
-                self.head_dim
-            )
-            attn_probs = F.softmax(attn_scores, dim=-1)
-            attn_output = torch.matmul(attn_probs, v)
-        return attn_output
+    # def attn(self, q, k, v):
+    #     if self.use_flash_attention:
+    #         attn_output = F.scaled_dot_product_attention(q, k, v, is_causal=False)
+    #     else:
+    #         attn_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(
+    #             self.head_dim
+    #         )
+    #         attn_probs = F.softmax(attn_scores, dim=-1)
+    #         attn_output = torch.matmul(attn_probs, v)
+    #     return attn_output
 
     def forward(self, x):
         batch_size, d_model, height, width = x.shape
