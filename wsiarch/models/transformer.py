@@ -133,7 +133,7 @@ class MultiHeadAttentionClassifier(nn.Module):
         batch_size, d_model, height, width = x.shape
 
         x = x.permute(0, 2, 3, 1).view(batch_size, height * width, d_model)
-        pos_encoding = self.get_positional_encoding(height, width).to(x.device)
+        pos_encoding = self.get_positional_encoding().to(x.device)
         x = x + pos_encoding.view(height * width, d_model)
 
         class_tokens = self.class_token.expand(batch_size, -1, -1)
