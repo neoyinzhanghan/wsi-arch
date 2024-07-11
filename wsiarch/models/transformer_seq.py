@@ -62,7 +62,7 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.classifier = nn.Linear(d_model, num_classes)
 
     def forward(self, x, p):
-        batch_size, d_model, length = x.shape
+        batch_size, length, d_model = x.shape
 
         assert (
             d_model == self.d_model
