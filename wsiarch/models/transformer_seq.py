@@ -196,5 +196,5 @@ def train_model(metadata_path, num_gpus=3, num_epochs=10):
 
 
 if __name__ == "__main__":
-    metadata_path = "metadata.csv"
+    metadata_path = "/media/hdd1/neo/LUAD-LUSC_UNI_metadata.csv"
     train_model(metadata_path=metadata_path)
