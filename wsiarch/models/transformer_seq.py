@@ -9,7 +9,10 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from pytorch_lightning.loggers import TensorBoardLogger
 from wsiarch.data.dataloader_seq import H5DataModule
 
-class Attn(nn.Module): # the main purpose of having this particular function is to have a named layer in the architecture for the flash attention
+
+class Attn(
+    nn.Module
+):  # the main purpose of having this particular function is to have a named layer in the architecture for the flash attention
     def __init__(self, head_dim, use_flash_attention):
         super(Attn, self).__init__()
         self.head_dim = head_dim
@@ -33,8 +36,7 @@ class MultiHeadAttentionClassifier(nn.Module):
         d_model=2048,
         num_heads=8,
         num_classes=2,
-        height_max=445,
-        width_max=230,
+        length_max=58182,
         use_flash_attention=True,
     ):
         super().__init__()
@@ -43,8 +45,7 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.head_dim = d_model // num_heads
         self.use_flash_attention = use_flash_attention
         self.num_classes = num_classes
-        self.height_max = height_max
-        self.width_max = width_max
+        self.length_max = length_max
 
         assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
 
@@ -62,6 +63,9 @@ class MultiHeadAttentionClassifier(nn.Module):
 
     def forward(self, x, p):
         batch_size, d_model, length = x.shape
+
+        assert d_model == self.d_model, "Input feature depth must be equal to d_model"
+        assert length == self.length_max, "Input length must be equal to length_max"
 
         class_tokens = self.class_token.expand(batch_size, -1, -1)
         x = torch.cat([class_tokens, x], dim=1)
@@ -166,7 +170,7 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
 def train_model(metadata_path, num_gpus=3, num_epochs=10):
     data_module = H5DataModule(
         metadata_path=metadata_path,
-        length_max=58182,   
+        length_max=58182,
         batch_size=8,
         num_workers=24,
     )

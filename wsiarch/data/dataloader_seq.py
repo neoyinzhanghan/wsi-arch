@@ -108,18 +108,14 @@ def create_data_loaders(
 class H5DataModule(pl.LightningDataModule):
     def __init__(
         self,
-        root_dir,
-        metadata_file,
-        width_max,
-        height_max,
+        metadata_path,
+        length_max=58182,
         batch_size=32,
         num_workers=12,
     ):
         super().__init__()
-        self.root_dir = root_dir
-        self.metadata_file = metadata_file
-        self.width_max = width_max
-        self.height_max = height_max
+        self.metadata_path = metadata_path
+        self.length_max = length_max
         self.batch_size = batch_size
         self.num_workers = num_workers
 
@@ -128,10 +124,8 @@ class H5DataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         self.train_loader, self.val_loader, self.test_loader = create_data_loaders(
-            root_dir=self.root_dir,
-            metadata_file=self.metadata_file,
-            width_max=self.width_max,
-            height_max=self.height_max,
+            metadata_path=self.metadata_path,
+            length_max=self.length_max,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
         )
