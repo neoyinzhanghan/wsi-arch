@@ -33,7 +33,7 @@ class Attn(
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(
         self,
-        d_model=2048,
+        d_model=1024,
         num_heads=8,
         num_classes=2,
         length_max=58182,
@@ -66,7 +66,7 @@ class MultiHeadAttentionClassifier(nn.Module):
 
         assert (
             d_model == self.d_model
-        ), f"Input feature depth == {d_model} must be equal to d_model == {self.d_model}"
+        ), f"Input feature depth == {d_model} must be equal to d_mod∂el == {self.d_model}"
         assert (
             length == self.length_max
         ), f"Input length == {length} must be equal to length_max == {self.length_max}"
@@ -180,7 +180,7 @@ def train_model(metadata_path, num_gpus=3, num_epochs=10):
     )
 
     model = MultiHeadAttentionClassifierPL(
-        d_model=2048,
+        d_model=1024,
         num_heads=8,
         num_classes=2,
         use_flash_attention=True,
