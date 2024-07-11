@@ -15,8 +15,7 @@ class H5Dataset(Dataset):
     ):  # the choice of 58182 here is based on the maximum context length required for the LUAD vs LUSC problem
         """
         Args:
-            root_dir (string): Directory with all the h5 files.
-            metadata_file (string): Path to the metadata csv file.
+            metadata_path (string): Path to the metadata csv file.
             split (string): One of 'train' or 'val' to specify which split to load.
             transform (callable, optional): Optional transform to be applied on a sample.
         """
@@ -71,19 +70,19 @@ def create_data_loaders(
 ):
 
     train_dataset = H5Dataset(
-        metadata_file=metadata_path,
+        metadata_path=metadata_path,
         split="train",
         length_max=length_max,
     )
 
     val_dataset = H5Dataset(
-        metadata_file=metadata_path,
+        metadata_path=metadata_path,
         split="val",
         length_max=length_max,
     )
 
     test_dataset = H5Dataset(
-        metadata_file=metadata_path,
+        metadata_path=metadata_path,
         split="test",
         length_max=length_max,
     )
