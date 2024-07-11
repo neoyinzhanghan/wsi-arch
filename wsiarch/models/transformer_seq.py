@@ -33,11 +33,11 @@ class Attn(
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(
         self,
-        d_model=1024,
-        num_heads=8,
-        num_classes=2,
-        length_max=58182,
-        use_flash_attention=True,
+        d_model:int=1024,
+        num_heads:int=8,
+        num_classes:int=2,
+        length_max:int=58182,
+        use_flash_attention:bool=True,
     ):
         super().__init__()
         self.d_model = d_model
@@ -107,14 +107,20 @@ class MultiHeadAttentionClassifier(nn.Module):
 
 class MultiHeadAttentionClassifierPL(pl.LightningModule):
     def __init__(
-        self, d_model, num_heads, num_classes, use_flash_attention=True, num_epochs=10
+        self, d_model, num_heads, num_classes, length_max=58182, use_flash_attention=True, num_epochs=10
     ):
         super().__init__()
         self.save_hyperparameters()
 
         self.model = MultiHeadAttentionClassifier(
-            d_model, num_heads, num_classes, use_flash_attention
+            d_model=d_model,
+            num_heads=num_heads,
+            num_classes=num_classes,
+            length_max=length_max,
+            use_flash_attention=use_flash_attention,
         )
+
+        self.num_epochs = num_epochs
 
         self.train_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
         self.val_accuracy = Accuracy(num_classes=num_classes, task="multiclass")
@@ -186,6 +192,7 @@ def train_model(metadata_path, num_gpus=3, num_epochs=10):
         d_model=1024,
         num_heads=8,
         num_classes=2,
+        length_max=58182,
         use_flash_attention=True,
         num_epochs=num_epochs,
     )
