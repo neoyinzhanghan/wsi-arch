@@ -64,8 +64,12 @@ class MultiHeadAttentionClassifier(nn.Module):
     def forward(self, x, p):
         batch_size, d_model, length = x.shape
 
-        assert d_model == self.d_model, "Input feature depth must be equal to d_model"
-        assert length == self.length_max, "Input length must be equal to length_max"
+        assert (
+            d_model == self.d_model
+        ), f"Input feature depth == {d_model} must be equal to d_model == {self.d_model}"
+        assert (
+            length == self.length_max
+        ), f"Input length == {length} must be equal to length_max == {self.length_max}"
 
         class_tokens = self.class_token.expand(batch_size, -1, -1)
         x = torch.cat([class_tokens, x], dim=1)
