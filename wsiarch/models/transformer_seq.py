@@ -67,6 +67,7 @@ class MultiHeadAttentionClassifier(nn.Module):
         assert (
             d_model == self.d_model
         ), f"Input feature depth == {d_model} must be equal to d_mod∂el == {self.d_model}"
+        assert type(length) == int, f"Input length must be an integer, got {type(length)}"  
         assert (
             length == self.length_max
         ), f"Input length == {length} must be equal to length_max == {self.length_max}"
