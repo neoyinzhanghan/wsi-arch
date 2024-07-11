@@ -67,25 +67,22 @@ class H5Dataset(Dataset):
 
 
 def create_data_loaders(
-    root_dir, metadata_path, length_max=58182, batch_size=32, num_workers=12
+    metadata_path, length_max=58182, batch_size=32, num_workers=12
 ):
 
     train_dataset = H5Dataset(
-        root_dir=root_dir,
         metadata_file=metadata_path,
         split="train",
         length_max=length_max,
     )
 
     val_dataset = H5Dataset(
-        root_dir=root_dir,
         metadata_file=metadata_path,
         split="val",
         length_max=length_max,
     )
 
     test_dataset = H5Dataset(
-        root_dir=root_dir,
         metadata_file=metadata_path,
         split="test",
         length_max=length_max,
