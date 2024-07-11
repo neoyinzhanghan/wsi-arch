@@ -184,7 +184,7 @@ def train_model(metadata_path, num_gpus=3, num_epochs=10):
     data_module = H5DataModule(
         metadata_path=metadata_path,
         length_max=58182,
-        batch_size=1,
+        batch_size=16,
         num_workers=24,
     )
 
