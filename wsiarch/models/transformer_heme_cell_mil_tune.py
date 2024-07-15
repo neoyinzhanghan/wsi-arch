@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+import ray
 import pytorch_lightning as pl
 from torchmetrics import Accuracy, F1Score, AUROC
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -192,8 +193,6 @@ def tune_model(metadata_path):
 
 
 if __name__ == "__main__":
-
-    import ray
 
     # Ensure Ray version consistency
     required_ray_version = "2.31.0"
