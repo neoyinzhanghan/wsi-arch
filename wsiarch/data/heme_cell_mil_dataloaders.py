@@ -90,9 +90,10 @@ class HemeCellMILDataset(Dataset):
 
             # check if is dir
             if os.path.isdir(feature_dir):
-                feature_paths = os.listdir(feature_dir)
-                # only keep the .pt files
-                feature_paths = [f for f in feature_paths if f.endswith(".pt")]
+                feature_files = os.listdir(feature_dir)
+                # check that the features end with .pt
+                feature_files = [f for f in feature_files if f.endswith(".pt")]
+                feature_paths = [os.path.join(feature_dir, f) for f in feature_files]
 
                 all_feature_paths.extend(feature_paths)
 
