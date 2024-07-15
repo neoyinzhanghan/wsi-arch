@@ -143,8 +143,8 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
 
         self.loss_fn = nn.CrossEntropyLoss()
 
-    def forward(self, x, p):
-        return self.model(x, p)
+    def forward(self, x):
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
