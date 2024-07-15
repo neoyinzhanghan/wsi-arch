@@ -199,7 +199,7 @@ def train_model(metadata_path, num_gpus=3, num_epochs=100):
         d_model=2048,
         num_heads=8,
         num_classes=2,
-        length_max=100,
+        length_max=500,
         use_flash_attention=True,
         num_epochs=num_epochs,
     )
