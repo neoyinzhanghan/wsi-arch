@@ -192,5 +192,14 @@ def tune_model(metadata_path):
 
 
 if __name__ == "__main__":
+
+    import ray
+
+    # Ensure Ray version consistency
+    required_ray_version = "2.31.0"
+    current_ray_version = ray.__version__
+    if current_ray_version != required_ray_version:
+        raise RuntimeError(f"Ray version mismatch: Required {required_ray_version}, but found {current_ray_version}")
+
     metadata_path = "/media/hdd1/neo/BMA_WSI-clf_AML-Normal_v3_metadata.csv"
     tune_model(metadata_path=metadata_path)
