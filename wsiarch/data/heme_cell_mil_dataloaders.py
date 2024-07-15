@@ -113,6 +113,9 @@ class HemeCellMILDataset(Dataset):
             feature = torch.load(feature_path)
             features.append(feature)
 
+        # make sure all the features are torch tensors if they are not already
+        features = [torch.tensor(f, dtype=torch.float32) for f in features]
+
         x = torch.stack(features)
 
         # Get the class label
