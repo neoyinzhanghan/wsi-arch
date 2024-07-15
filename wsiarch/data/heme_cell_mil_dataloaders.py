@@ -41,7 +41,7 @@ class HemeCellMILDataset(Dataset):
     def __init__(
         self,
         metadata_path,
-        split,
+        split="train",
         length_max=100,
         feature_name="features_v3",
         transform=None,
@@ -164,7 +164,7 @@ def create_data_loaders(
     return train_loader, val_loader, test_loader
 
 
-class HemeCellMILDataset(pl.LightningDataModule):
+class HemeCellMILModule(pl.LightningDataModule):
     def __init__(
         self,
         metadata_path,

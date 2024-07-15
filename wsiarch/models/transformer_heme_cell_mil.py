@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 from torchmetrics import Accuracy, F1Score, AUROC
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from pytorch_lightning.loggers import TensorBoardLogger
-from wsiarch.data.heme_cell_mil_dataloaders import HemeCellMILDataset
+from wsiarch.data.heme_cell_mil_dataloaders import HemeCellMILModule
 
 
 class Attn(
@@ -188,7 +188,7 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
 
 
 def train_model(metadata_path, num_gpus=3, num_epochs=10):
-    data_module = HemeCellMILDataset(
+    data_module = HemeCellMILModule(
         metadata_path=metadata_path,
         length_max=100,
         batch_size=16,
