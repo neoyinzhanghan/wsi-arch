@@ -61,7 +61,7 @@ class MultiHeadAttentionClassifier(nn.Module):
         self.class_token = nn.Parameter(torch.randn(1, 1, d_model))
         self.classifier = nn.Linear(d_model, num_classes)
 
-    def forward(self, x, p):
+    def forward(self, x):
         batch_size, length, d_model = x.shape
 
         assert (
@@ -147,8 +147,8 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         return self.model(x, p)
 
     def training_step(self, batch, batch_idx):
-        x, p, y = batch
-        logits = self(x, p)
+        x, y = batch
+        logits = self(x)
         loss = self.loss_fn(logits, y)
         self.log("train_loss", loss)
         self.log("train_accuracy", self.train_accuracy(logits, y))
@@ -157,8 +157,8 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, p, y = batch
-        logits = self(x, p)
+        x, y = batch
+        logits = self(x)
         loss = self.loss_fn(logits, y)
         self.log("val_loss", loss)
         self.log("val_accuracy", self.val_accuracy(logits, y))
@@ -166,8 +166,8 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         self.log("val_auroc", self.val_auroc(logits, y))
 
     def test_step(self, batch, batch_idx):
-        x, p, y = batch
-        logits = self(x, p)
+        x, y = batch
+        logits = self(x)
         loss = self.loss_fn(logits, y)
         self.log("test_loss", loss)
         self.log("test_accuracy", self.test_accuracy(logits, y))
