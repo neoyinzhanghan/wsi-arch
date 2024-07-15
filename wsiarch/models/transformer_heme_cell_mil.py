@@ -180,14 +180,14 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         self.log("lr", current_lr)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=0.0001)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=0.00001)
         scheduler = CosineAnnealingLR(
             optimizer, T_max=self.hparams.num_epochs, eta_min=0
         )
         return [optimizer], [scheduler]
 
 
-def train_model(metadata_path, num_gpus=3, num_epochs=100):
+def train_model(metadata_path, num_gpus=3, num_epochs=10):
     data_module = HemeCellMILModule(
         metadata_path=metadata_path,
         length_max=500,
