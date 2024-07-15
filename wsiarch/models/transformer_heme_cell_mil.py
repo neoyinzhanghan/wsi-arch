@@ -112,9 +112,9 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         d_model,
         num_heads,
         num_classes,
-        length_max=100,
+        length_max=500,
         use_flash_attention=True,
-        num_epochs=10,
+        num_epochs=100,
     ):
         super().__init__()
         self.save_hyperparameters()
