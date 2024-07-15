@@ -217,5 +217,5 @@ def train_model(metadata_path, num_gpus=3, num_epochs=10):
 
 
 if __name__ == "__main__":
-    metadata_path = "/media/hdd3/neo/BMA_WSI-clf_AML-Normal_v3_metadata.csv"
+    metadata_path = "/media/hdd1/neo/BMA_WSI-clf_AML-Normal_v3_metadata.csv"
     train_model(metadata_path=metadata_path)
