@@ -187,10 +187,10 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-def train_model(metadata_path, num_gpus=3, num_epochs=10):
+def train_model(metadata_path, num_gpus=3, num_epochs=100):
     data_module = HemeCellMILModule(
         metadata_path=metadata_path,
-        length_max=100,
+        length_max=500,
         batch_size=16,
         num_workers=24,
     )
