@@ -195,6 +195,7 @@ def tune_model(metadata_path):
 if __name__ == "__main__":
 
     # Ensure Ray version consistency
+    required_python_version = "3.9.0"
     required_ray_version = "2.31.0"
     current_ray_version = ray.__version__
     if current_ray_version != required_ray_version:
