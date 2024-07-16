@@ -33,7 +33,7 @@ class Attn(
 class MultiHeadAttentionClassifier(nn.Module):
     def __init__(
         self,
-        d_model: int = 2048,
+        d_model: int = 1000,
         num_heads: int = 8,
         num_classes: int = 2,
         length_max: int = 100,
@@ -196,7 +196,7 @@ def train_model(metadata_path, num_gpus=3, num_epochs=100):
     )
 
     model = MultiHeadAttentionClassifierPL(
-        d_model=2048,
+        d_model=1000,
         num_heads=8,
         num_classes=2,
         length_max=500,
