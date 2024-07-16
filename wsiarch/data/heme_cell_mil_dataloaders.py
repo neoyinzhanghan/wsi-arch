@@ -43,7 +43,7 @@ class HemeCellMILDataset(Dataset):
         metadata_path,
         split="train",
         length_max=100,
-        feature_name="features_v3",
+        feature_name="OG_features",
         transform=None,
     ):  # the choice of 58182 here is based on the maximum context length required for the LUAD vs LUSC problem
         """
@@ -128,7 +128,7 @@ class HemeCellMILDataset(Dataset):
 def create_data_loaders(
     metadata_path,
     length_max=100,
-    feature_name="features_v3",
+    feature_name="OG_features",
     batch_size=32,
     num_workers=12,
 ):
@@ -173,7 +173,7 @@ class HemeCellMILModule(pl.LightningDataModule):
         self,
         metadata_path,
         length_max=100,
-        feature_name="features_v3",
+        feature_name="OG_features",
         batch_size=32,
         num_workers=12,
     ):
