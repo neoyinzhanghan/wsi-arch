@@ -223,4 +223,4 @@ if __name__ == "__main__":
     metadata_path = "/media/hdd1/neo/BMA_WSI-clf_AML-Normal_v3_metadata.csv"
 
     for lr in [1, 0.1, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001]:
-        train_model(metadata_path=metadata_path, num_epochs=100, lr=lr)
+        train_model(metadata_path=metadata_path, num_epochs=200, lr=lr)
