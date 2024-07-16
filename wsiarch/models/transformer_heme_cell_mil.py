@@ -114,7 +114,7 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         num_classes,
         length_max=500,
         use_flash_attention=True,
-        num_epochs=100,
+        num_epochs=10,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -187,7 +187,7 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-def train_model(metadata_path, num_gpus=3, num_epochs=100):
+def train_model(metadata_path, num_gpus=3, num_epochs=10):
     data_module = HemeCellMILModule(
         metadata_path=metadata_path,
         length_max=500,
