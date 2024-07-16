@@ -115,6 +115,7 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         length_max=500,
         use_flash_attention=True,
         num_epochs=10,
+        lr=0.0001,
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -142,6 +143,7 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         self.test_auroc = AUROC(num_classes=num_classes, task="multiclass")
 
         self.loss_fn = nn.CrossEntropyLoss()
+        self.lr = lr
 
     def forward(self, x):
         return self.model(x)
@@ -180,14 +182,14 @@ class MultiHeadAttentionClassifierPL(pl.LightningModule):
         self.log("lr", current_lr)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=0.0001)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
         scheduler = CosineAnnealingLR(
             optimizer, T_max=self.hparams.num_epochs, eta_min=0
         )
         return [optimizer], [scheduler]
 
 
-def train_model(metadata_path, num_gpus=3, num_epochs=10):
+def train_model(metadata_path, num_gpus=3, num_epochs=10, lr=0.0001):
     data_module = HemeCellMILModule(
         metadata_path=metadata_path,
         length_max=500,
@@ -202,6 +204,7 @@ def train_model(metadata_path, num_gpus=3, num_epochs=10):
         length_max=500,
         use_flash_attention=True,
         num_epochs=num_epochs,
+        lr=lr,
     )
 
     logger = TensorBoardLogger("lightning_logs", name="multihead_attention")
@@ -218,4 +221,6 @@ def train_model(metadata_path, num_gpus=3, num_epochs=10):
 
 if __name__ == "__main__":
     metadata_path = "/media/hdd1/neo/BMA_WSI-clf_AML-Normal_v3_metadata.csv"
-    train_model(metadata_path=metadata_path)
+
+    for lr in [1, 0.1, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 0.00000001]:
+        train_model(metadata_path=metadata_path, num_epochs=100, lr=lr)
